@@ -44,7 +44,7 @@
   --color-ink-bright: #f2f4f8;
 
   /* ---- 字体 ---- */
-  --font-sans: "OPPO Sans", "HarmonyOS Sans SC", Inter, -apple-system,
+  --font-sans: "OPPO Sans 4.0", "OPPO Sans", "HarmonyOS Sans SC", Inter, -apple-system,
                "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
 

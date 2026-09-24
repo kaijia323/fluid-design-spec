@@ -158,12 +158,12 @@ Global Tokens  →  Semantic Tokens      →  Component Tokens
 ### 3.1 字体族
 
 ```
---font-sans: "OPPO Sans", "HarmonyOS Sans SC", Inter, -apple-system,
+--font-sans: "OPPO Sans 4.0", "OPPO Sans", "HarmonyOS Sans SC", Inter, -apple-system,
              "PingFang SC", "Microsoft YaHei", sans-serif;
 --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
 ```
 
-规则：中文优先 OPPO Sans，缺字回退 HarmonyOS Sans SC / PingFang SC；数字与代码用等宽字体便于对齐。
+规则：中文优先 OPPO Sans（官方品牌字体，当前 4.0，**官方免费商用**），缺字回退 HarmonyOS Sans SC / PingFang SC；数字与代码用等宽字体便于对齐。
 
 ### 3.2 字阶
 
