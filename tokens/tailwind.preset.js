@@ -1,6 +1,6 @@
 /**
  * 流体设计 · Tailwind 预设
- * 版本 v1.1 ｜ 配套文档：../Design.md、../SOURCES.md
+ * 版本 v2.0 ｜ 配套文档：../Design.md、../SOURCES.md
  *
  * 用法（Tailwind v3，tailwind.config.js）：
  *   const fluid = require('./tokens/tailwind.preset.js');
@@ -10,17 +10,29 @@
  *
  * 说明：组件层令牌（--button-radius 等）由 tokens.css 按 <html data-platform> 决定，
  *       本预设只负责把全局 / 语义令牌接到 Tailwind 的工具类上。
+ *
+ * 品牌色（v2.0）：brand.* 直接指向 Layer 0 品牌层 var(--brand-accent*)，换品牌只改
+ *       tokens/brand.css；accent 键保留，指向第二强调色 var(--color-accent-2)；
+ *       主色实心块上的文字用 text-on-accent（即 --color-on-accent），不要写 text-white。
+ *       旧键 primary.* 全部保留；primary.brand 是 v1 兼容别名，新代码请改用 brand.*。
  */
 
 const tokens = {
   colors: {
+    brand: {
+      DEFAULT: 'var(--brand-accent)',
+      hover: 'var(--brand-accent-hover)',
+      active: 'var(--brand-accent-active)',
+      bright: 'var(--brand-accent-bright)',
+    },
     primary: {
       DEFAULT: 'var(--color-action-default)',
       hover: 'var(--color-action-hover)',
       active: 'var(--color-action-active)',
-      brand: 'var(--color-primary)',
+      brand: 'var(--color-primary)',   /* deprecated：新代码请用 brand.DEFAULT */
     },
-    accent: 'var(--color-accent)',
+    accent: 'var(--color-accent-2)',        // v1 的 accent 键保留，指向新的第二强调色
+    'on-accent': 'var(--color-on-accent)',
     success: 'var(--color-status-success)',
     warning: 'var(--color-status-warning)',
     error: 'var(--color-status-error)',

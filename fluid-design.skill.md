@@ -36,7 +36,7 @@
   /* 指针/触摸坐标由 JS 写入 CSS 变量，光斑跟随 */
   background:
     radial-gradient(220px circle at var(--pointer-x, 50%) var(--pointer-y, 0%),
-      rgba(26, 107, 255, 0.18), transparent 70%),
+      color-mix(in srgb, var(--brand-accent) 18%, transparent), transparent 70%),
     var(--color-bg-surface);
   transition: background-position var(--duration-300) var(--ease-fluid);
 }
@@ -44,16 +44,17 @@
 
 - 用 `transform: translate3d()` 或背景位置移动，避免触发重排。
 - 光斑透明度建议 ≤ 0.2，暗色下可略高（※）。
+- 光斑颜色取品牌主色（`--brand-accent`），**不允许写死 hex**。这里的 `color-mix()` 只用于光斑的半透明派生；令牌本身的派生值是静态 hex，不依赖它（见 `tokens/brand.css`）。这是规范里**唯一允许直接读品牌层**的地方（语义层暂无"品牌色低透明度"令牌）；要兼容老 WebView，就在 `tokens/brand.css` 里补一个低透明度的品牌色令牌（**当前不存在，需按需新增**），再用 `@supports not (color: color-mix(in srgb, red, blue))` 切过去——**不要**在组件里写死 `rgba()`。
 
 ### 2.3 双端差异
 
 | 维度 | 移动端 | Web / B 端 |
 |---|---|---|
 | 光斑 | 可用（背景光斑、按钮内光斑） | **禁用** |
-| 渐变 | 可用（凝光渐变） | **禁用**，主色用纯色 |
+| 渐变 | 可用（凝光渐变） | **禁用**，品牌主色用纯色 |
 | 替代方案 | — | 用描边、悬停背景、焦点环表达"注意力" |
 
-> B 端不是"没有光"，而是把光换成**对比度与层级**：主色纯色、焦点环、行高亮。
+> B 端不是"没有光"，而是把光换成**对比度与层级**：品牌主色纯色、焦点环、行高亮。
 
 ---
 
@@ -126,7 +127,7 @@
 | 触觉反馈 | 可用（轻/中/重） | 不适用 |
 | hover | 次要 | **必须**有（键鼠主交互） |
 | 拖拽回弹 | 120% + spring | 一般不超 1.05 倍缩放（※） |
-| 焦点反馈 | 触摸为主 | 焦点环主色 2px、偏移 2px |
+| 焦点反馈 | 触摸为主 | 焦点环品牌主色 2px、偏移 2px |
 
 ---
 
@@ -199,6 +200,7 @@
 - [ ] 按下反馈是 `scale(0.96)` / `scale(0.98)`，且 100ms 内开始？
 - [ ] 拖拽最大 120%、跟手度 1.0、释放有回弹或落地？
 - [ ] 是否有 `prefers-reduced-motion` 降级？
+- [ ] 光斑 / 高光用的颜色是否来自 `--brand-accent`，没有写死品牌 hex？
 - [ ] B 端是否已经去掉渐变与光斑？
 - [ ] 是否只动 `transform` / `opacity`，没有触发重排？
 

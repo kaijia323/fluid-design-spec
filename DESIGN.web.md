@@ -12,7 +12,7 @@
 移动端那套"凝光"到了 Web / B 端要**收敛**：
 
 - 去掉渐变、光斑、装饰性动画。
-- 主色用纯色；状态徽章用纯色底 + 小圆点。
+- 主色 `--color-action-default` 用纯色（组件只引用语义层令牌；明暗两套自动切到品牌主色 / 提亮色）；状态徽章用纯色底 + 小圆点。
 - 保留：流畅动效、清晰层级、键盘可达性。
 - 流体设计的"响应感"保留，但不能干扰信息读取。
 - 按钮按下仍有 `scale(0.98)`；表格行悬停有平滑背景过渡。
@@ -29,9 +29,9 @@
 | 缓动 | 统一 `--ease-fluid` |
 | 导航 | 侧边栏，窄屏（< 860px）收起为抽屉 |
 | 交互态 | hover / focus-visible / active / disabled 四态必须齐全 |
-| 焦点环 | 主色 2px，偏移 2px |
+| 焦点环 | 品牌主色 2px，偏移 2px |
 | 快捷键 | ⌘K / Ctrl+K 聚焦搜索 |
-| 表格行 | 可 Tab 聚焦，`focus-within` 显示左侧主色条 |
+| 表格行 | 可 Tab 聚焦，`focus-within` 显示左侧品牌主色条 |
 | 行操作 | hover / focus-within 时显示 |
 | 信息密度 | 优先 |
 
@@ -86,7 +86,7 @@
 | 状态 | 表现 |
 |---|---|
 | hover | 背景/描边平滑变化（150ms），可点元素 `cursor: pointer` |
-| focus-visible | 焦点环：主色 2px，`outline-offset: 2px`，**禁止去掉 outline 而不给替代** |
+| focus-visible | 焦点环：品牌主色 2px，`outline-offset: 2px`，**禁止去掉 outline 而不给替代** |
 | active | 按钮 `scale(0.98)`；行/项背景再加深一档 |
 | disabled | 降透明度 + `cursor: not-allowed`，不可聚焦，无动效 |
 
@@ -96,7 +96,7 @@
 - 表格行可 Tab 聚焦；聚焦时左侧显示 2px 主色条（`box-shadow: inset 2px 0 0 var(--color-action-default)`）。
 - 行内操作按钮在 hover / `focus-within` 时显示，键盘聚焦时也必须可见（不能只靠 hover 才出现，否则键盘用户无法触达）。
 - 弹层：Esc 关闭，打开时焦点移入，关闭后焦点归还触发元素（※）。
-- 焦点环在任何背景上都可见（暗色下用提亮主色）。
+- 焦点环在任何背景上都可见（暗色下自动切到 `--brand-accent-bright`，由 `tokens/brand.css` 保证对比度）。
 
 ## 7. 快捷键
 
@@ -112,7 +112,7 @@
 ## 8. 数据表格（B 端核心）
 
 - 结构：表头（可排序）+ 行 + 状态徽章 + 行操作 + 分页。
-- 排序：点击表头切换升/降序，当前排序列显示方向箭头与主色文字。
+- 排序：点击表头切换升/降序，当前排序列显示方向箭头与品牌主色文字。
 - 状态徽章：纯色底 + 小圆点 + 文字，不用渐变、不用大面积色块。
 - 行操作：默认隐藏，hover / focus-within 显示；不超过 3 个直接操作，其余收进"更多"。
 - 分页：显示总数与页码范围；切换后保持滚动位置或回到表格顶部（※）。
@@ -148,7 +148,8 @@
 - [ ] 圆角是否收敛到 6–12px（没有误用 16–24px）？
 - [ ] 动效是否在 150–220ms 内？
 - [ ] hover / focus-visible / active / disabled 四态是否齐全？
-- [ ] 焦点环是否是主色 2px、偏移 2px，且没有被 `outline: none` 干掉？
+- [ ] 焦点环是否是品牌主色 2px、偏移 2px，且没有被 `outline: none` 干掉？
+- [ ] 品牌色是否只来自 `tokens/brand.css`（组件里没有写死品牌 hex）？主按钮文字是否用了 `--color-on-accent`？
 - [ ] ⌘K / Ctrl+K 是否可用？
 - [ ] 表格行能否 Tab 聚焦？行操作在键盘聚焦时是否可见？
 - [ ] 是否出现了渐变、光斑、装饰性动画？
@@ -179,6 +180,8 @@
               transform var(--duration-150) var(--ease-fluid);
 }
 .btn:hover { background: var(--color-action-hover); }
+/* 主色实心按钮：文字必须用 --color-on-accent，不要写 #fff */
+.btn--primary { background: var(--color-action-default); color: var(--color-on-accent); }
 .btn:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;

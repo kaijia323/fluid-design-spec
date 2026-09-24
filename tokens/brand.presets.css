@@ -1,0 +1,62 @@
+/* ============================================================================
+ * 流体设计令牌 · brand.presets.css —— Layer 0 品牌层预设（3 套现成配色）
+ * 版本 v2.0 ｜ 配套文档：../Design.md 第 2 节
+ *
+ * 用法：<html data-brand="ink-green">（可选值：ink-green | magenta | teal）
+ *
+ * 引入顺序（重要）：本文件必须在 tokens.css / brand.css 之后引入。
+ *   <link rel="stylesheet" href="tokens/tokens.css">      <!-- 内部已 @import "./brand.css" -->
+ *   <link rel="stylesheet" href="tokens/brand.presets.css">
+ *   或者：brand.css → tokens.css → brand.presets.css，两种顺序都对。
+ *   （tokens.css 第一行非注释语句就是 @import "./brand.css";，若引的是 tokens.css，本文件放它后面即可。）
+ *
+ * 选择器为什么是 :root[data-brand="..."]：裸 [data-brand="..."] 与品牌默认值的 :root 特异性同为 (0,1,0)，
+ *   顺序一旦写错，tokens.css 的 @import "./brand.css" 会就地展开默认值并写在后面，把预设整个盖回去
+ *   （浏览器实测：三个预设全失效，按钮仍是 rgb(26,107,255)）。:root[data-brand] 是 (0,2,0)，稳压 :root，
+ *   所以顺序错了也不会被默认值盖回去（双保险）。
+ *
+ * 每个预设只覆盖品牌主色相关的 8 个令牌：
+ *   --brand-accent、--brand-accent-hover、--brand-accent-active、
+ *   --brand-accent-bright、--brand-accent-bright-hover、--brand-accent-bright-active、
+ *   --brand-on-accent、--brand-on-accent-bright。
+ *   第二强调色（--brand-accent-2 及其派生）不随预设变，沿用 brand.css 的默认日落橘。
+ *
+ * 选色依据：主色色相离状态色（success / warning / error）≥15°，由 node scripts/brand.mjs check 判定。
+ * 每个预设的 7 个派生值都是 derive(该预设主色) 的输出，不得手改。
+ * ==========================================================================*/
+
+/* 墨绿：偏稳重、生态 / 金融类项目 */
+:root[data-brand="ink-green"] {
+  --brand-accent: #0e7a5f;
+  --brand-accent-hover: #27896d;
+  --brand-accent-active: #00654c;
+  --brand-accent-bright: #4fab8e;
+  --brand-accent-bright-hover: #5fbb9d;
+  --brand-accent-bright-active: #379579;
+  --brand-on-accent: #ffffff;
+  --brand-on-accent-bright: #1a1d24;
+}
+
+/* 品红：偏潮流、偏营销 / 内容类项目（色相离分类标识色 --color-purple 31°，够远） */
+:root[data-brand="magenta"] {
+  --brand-accent: #a21caf;
+  --brand-accent-hover: #b332bf;
+  --brand-accent-active: #8b0098;
+  --brand-accent-bright: #d859e4;
+  --brand-accent-bright-hover: #e96af5;
+  --brand-accent-bright-active: #c041cd;
+  --brand-on-accent: #ffffff;
+  --brand-on-accent-bright: #1a1d24;
+}
+
+/* 青蓝：偏冷静、偏数据 / 工具类项目 */
+:root[data-brand="teal"] {
+  --brand-accent: #0e7490;
+  --brand-accent-hover: #27839f;
+  --brand-accent-active: #00607b;
+  --brand-accent-bright: #4ea5c2;
+  --brand-accent-bright-hover: #5fb5d3;
+  --brand-accent-bright-active: #368fac;
+  --brand-on-accent: #ffffff;
+  --brand-on-accent-bright: #1a1d24;
+}

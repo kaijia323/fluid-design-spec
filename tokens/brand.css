@@ -1,0 +1,47 @@
+/* ============================================================================
+ * 流体设计令牌 · brand.css —— Layer 0 品牌层（换品牌唯一要改的文件）
+ * 版本 v2.0 ｜ 配套文档：../Design.md 第 2 节、../SOURCES.md
+ *
+ * 口径：品牌色是项目输入，不是规范的一部分；规范只提供默认值（默认日出蓝）。
+ *       颜色 hex 是本规范自拟的，OPPO 从未公开过这些数值。
+ *
+ * 换品牌五步：
+ *   1) 只改下面 @brand-inputs 段的 2 个输入；项目没有第二品牌色就沿用默认日落橘；
+ *   2) node scripts/brand.mjs derive '<品牌主色 hex>' [--brand-2 '<第二色 hex>']
+ *      用它的 10 行输出覆盖 @brand-derived 段（逐字粘贴，不要手算）；
+ *   3) node scripts/brand.mjs check 过门禁：按钮文字对比度 ≥4.5:1、暗色提亮色对暗底 ≥4.5:1、
+ *      交互态 OKLab 明度差 ≥0.03、品牌主色与 success/warning/error 色相距离 ≥15°、令牌引用完整；
+ *   4) 明暗两套各看一眼（按钮 / 主色块上的文字用 --color-on-accent，不要写 #fff）；
+ *   5) 提交。
+ *
+ * 派生算法（冻结，不得手改，也禁止用 HSL/HSV 调明度）：
+ *   hex → OKLab → OKLCH(L, C, H)，只改明度 L，C 与 H 不动；回 sRGB 后钳制、取最近整数、写小写 hex。
+ *   hover  = L + 0.05                active  = L - 0.07
+ *   bright = min(1, max(L + 0.16, lNeeded))，lNeeded = 从 L 起以 0.005 步长递增到
+ *            对暗底 #0b0d12 的对比度达到 4.5:1 的最小 L
+ *   bright-hover = bright + 0.05     bright-active = bright - 0.07
+ *   on-accent = #ffffff 与 #1a1d24 中对底色对比度更高的那个（两者都 <4.5:1 时 check 报 G1/G2 失败）
+ *   第二强调色同 hover / active / on-accent 三档，不做 bright。
+ *
+ * 格式约定（scripts/brand.mjs 依赖，别打乱）：一个声明一行、两个空格缩进、行尾分号、hex 全小写；
+ *   @brand-inputs / @brand-derived 两个分节标记供脚本定位；derive 的输出可逐字粘贴进派生段。
+ * ==========================================================================*/
+:root {
+  /* @brand-inputs:start */
+  --brand-accent: #1a6bff;
+  --brand-accent-2: #ff8c42;
+  /* @brand-inputs:end */
+
+  /* @brand-derived:start */
+  --brand-accent-hover: #2c7cff;
+  --brand-accent-active: #0053e6;
+  --brand-accent-bright: #4fa0ff;
+  --brand-accent-bright-hover: #5fb1ff;
+  --brand-accent-bright-active: #3989ff;
+  --brand-on-accent: #ffffff;
+  --brand-on-accent-bright: #1a1d24;
+  --brand-accent-2-hover: #ff9c53;
+  --brand-accent-2-active: #e67627;
+  --brand-on-accent-2: #1a1d24;
+  /* @brand-derived:end */
+}

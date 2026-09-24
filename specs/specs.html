@@ -1,0 +1,1557 @@
+<!doctype html>
+<html lang="zh-CN">
+<!-- spec-builder-viewer: 2 -->
+<!-- 查看器版本标记：ensure_viewer.py 靠它发现项目 specs/ 下的旧版查看器；查看器结构改动时把数字 +1 -->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="spec-builder / specs.html v2">
+<title>SPEC 浏览器</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
+<style>
+/* ---------- 主题变量：不依赖 Tailwind 也能保证可读 ---------- */
+:root{
+  --bg:#eef2f7; --panel:#ffffff; --panel-2:#f8fafc; --panel-3:#eef2f7;
+  --text:#0f172a; --muted:#64748b; --faint:#94a3b8;
+  --border:#e2e8f0; --border-strong:#cbd5e1; --accent:#4f46e5; --accent-weak:rgba(79,70,229,.10);
+  --code-bg:#f1f5f9; --code-fg:#0f172a;
+  --ok:#059669; --ok-bg:rgba(16,185,129,.12);
+  --warn:#b45309; --warn-bg:rgba(245,158,11,.15);
+  --err:#dc2626; --err-bg:rgba(239,68,68,.12);
+  --shadow:0 1px 2px rgba(15,23,42,.05),0 4px 14px rgba(15,23,42,.06);
+}
+.dark{
+  --bg:#070b16; --panel:#0f172a; --panel-2:#131f38; --panel-3:#1e293b;
+  --text:#e2e8f0; --muted:#94a3b8; --faint:#64748b;
+  --border:#1e293b; --border-strong:#334155; --accent:#818cf8; --accent-weak:rgba(129,140,248,.14);
+  --code-bg:#0b1220; --code-fg:#cbd5e1;
+  --ok:#34d399; --ok-bg:rgba(52,211,153,.12);
+  --warn:#fbbf24; --warn-bg:rgba(251,191,36,.13);
+  --err:#f87171; --err-bg:rgba(248,113,113,.13);
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 22px rgba(0,0,0,.32);
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+[hidden]{display:none !important}
+
+/* ---------- 布局（自带，不依赖 Tailwind） ---------- */
+#spec-viewer-app{display:flex;height:100%;min-height:100vh}
+#sidebar{display:flex;flex-direction:column;width:21rem;flex:none;height:100vh;background:var(--panel);border-right:1px solid var(--border)}
+#spec-list{flex:1;overflow-y:auto;padding:0 .5rem 1rem}
+#main{flex:1;min-width:0;height:100vh;overflow-y:auto;scroll-behavior:smooth}
+.wrap{max-width:960px;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+@media(max-width:860px){
+  #spec-viewer-app{flex-direction:column}
+  #sidebar{width:100%;height:auto;max-height:44vh;border-right:0;border-bottom:1px solid var(--border)}
+  #main{height:auto;min-height:52vh}
+  .wrap{padding:1.1rem .9rem 3rem}
+}
+
+/* ---------- 通用 ---------- */
+.muted{color:var(--muted)}
+.faint{color:var(--faint)}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+.card-pad{padding:1rem 1.15rem}
+.section-title{font-size:.78rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:.6rem;margin:0}
+.section-title::after{content:"";flex:1;height:1px;background:var(--border)}
+.field-label{font-size:.7rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem}
+.prose{white-space:pre-wrap;word-break:break-word}
+code.code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;font-size:.85em;background:var(--code-bg);color:var(--code-fg);padding:.1em .42em;border-radius:.35rem}
+.codeblock{position:relative;margin:0;background:var(--code-bg);border:1px solid var(--border);border-radius:10px;padding:.7rem .85rem;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.79rem;white-space:pre-wrap;word-break:break-word;color:var(--code-fg);overflow-x:auto;line-height:1.55}
+.copy-btn{font-size:.68rem;font-weight:700;color:var(--muted);background:var(--panel);border:1px solid var(--border);border-radius:.4rem;padding:.08rem .42rem;cursor:pointer}
+.copy-btn:hover{color:var(--text);border-color:var(--border-strong)}
+.link{background:none;border:0;color:var(--accent);cursor:pointer;font-weight:700;text-decoration:underline;padding:0;font-size:inherit}
+
+/* ---------- 按钮 / 表单 ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.35rem;border-radius:9px;font-size:.82rem;font-weight:700;padding:.42rem .7rem;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--border-strong);background:var(--panel-2)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent);border-color:var(--accent);filter:brightness(1.08)}
+.btn-ghost{background:transparent;border-color:transparent;padding:.35rem .5rem}
+.btn-ghost:hover{background:var(--panel-3)}
+.input{width:100%;background:var(--panel-2);border:1px solid var(--border);border-radius:9px;padding:.42rem .6rem;font-size:.84rem;color:var(--text);outline:none}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+select.input{cursor:pointer}
+
+/* ---------- 侧栏 ---------- */
+.side-group{display:flex;align-items:center;gap:.45rem;font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);padding:.55rem .5rem .25rem}
+.side-dot{width:.5rem;height:.5rem;border-radius:99px;flex:none}
+.side-item{display:flex;flex-direction:column;gap:.12rem;width:100%;text-align:left;padding:.5rem .6rem;border-radius:10px;border:1px solid transparent;background:transparent;color:inherit;cursor:pointer;font:inherit}
+.side-item:hover{background:var(--panel-2)}
+.side-item.active{background:var(--accent-weak);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.side-item-name{font-size:.85rem;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.side-item-meta{font-size:.69rem;color:var(--faint);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-item-badges{display:flex;gap:.3rem;margin-top:.2rem;flex-wrap:wrap}
+
+/* ---------- 徽章 / chip ---------- */
+.chip{display:inline-flex;align-items:center;gap:.3rem;padding:.1rem .55rem;border-radius:9999px;font-size:.72rem;font-weight:800;line-height:1.6;background:var(--c-bg,#f1f5f9);color:var(--c,#475569);white-space:nowrap}
+.badge{display:inline-flex;align-items:center;padding:.06rem .42rem;border-radius:.38rem;font-size:.66rem;font-weight:800;line-height:1.5;white-space:nowrap}
+.badge-ok{background:var(--ok-bg);color:var(--ok)}
+.badge-warn{background:var(--warn-bg);color:var(--warn)}
+.badge-err{background:var(--err-bg);color:var(--err)}
+.t-feature{--c:#059669;--c-bg:rgba(16,185,129,.13)}
+.t-bugfix{--c:#e11d48;--c-bg:rgba(244,63,94,.13)}
+.t-refactor{--c:#0284c7;--c-bg:rgba(14,165,233,.13)}
+.t-research{--c:#7c3aed;--c-bg:rgba(139,92,246,.13)}
+.t-ops{--c:#d97706;--c-bg:rgba(245,158,11,.15)}
+.t-unknown{--c:#64748b;--c-bg:rgba(100,116,139,.15)}
+.dark .t-feature{--c:#34d399}
+.dark .t-bugfix{--c:#fb7185}
+.dark .t-refactor{--c:#38bdf8}
+.dark .t-research{--c:#a78bfa}
+.dark .t-ops{--c:#fbbf24}
+.s-draft{--c:#64748b;--c-bg:rgba(100,116,139,.16)}
+.s-ready{--c:#059669;--c-bg:rgba(16,185,129,.15)}
+.s-in_progress{--c:#2563eb;--c-bg:rgba(59,130,246,.15)}
+.s-done{--c:#0d9488;--c-bg:rgba(20,184,166,.15)}
+.s-verified{--c:#7c3aed;--c-bg:rgba(124,58,237,.16)}
+.s-blocked{--c:#dc2626;--c-bg:rgba(239,68,68,.15)}
+.s-unknown{--c:#64748b;--c-bg:rgba(100,116,139,.16)}
+.dark .s-ready{--c:#34d399}
+.dark .s-in_progress{--c:#60a5fa}
+.dark .s-done{--c:#2dd4bf}
+.dark .s-verified{--c:#a78bfa}
+.dark .s-blocked{--c:#f87171}
+
+/* ---------- 表格 / 列表 ---------- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--panel)}
+.tbl{width:100%;border-collapse:collapse;font-size:.83rem}
+.tbl th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--panel-2);padding:.5rem .7rem;border-bottom:1px solid var(--border);white-space:nowrap;font-weight:800}
+.tbl td{padding:.55rem .7rem;border-bottom:1px solid var(--border);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.bullets{margin:0;padding-left:1.15rem;display:grid;gap:.3rem}
+.bullets li{padding-left:.05rem}
+.steps{margin:0;padding-left:0;list-style:none;counter-reset:step;display:grid;gap:.5rem}
+.steps li{position:relative;padding-left:2.05rem;counter-increment:step}
+.steps li::before{content:counter(step);position:absolute;left:0;top:.08rem;width:1.4rem;height:1.4rem;border-radius:99px;background:var(--accent-weak);color:var(--accent);font-size:.72rem;font-weight:800;display:grid;place-items:center}
+.kv{display:grid;grid-template-columns:8.5rem 1fr;gap:.6rem;font-size:.86rem;padding:.4rem 0;border-bottom:1px dashed var(--border)}
+.kv:last-child{border-bottom:0}
+.kv-k{color:var(--muted);font-weight:700}
+.kv-v{white-space:pre-wrap;word-break:break-word}
+@media(max-width:640px){.kv{grid-template-columns:1fr;gap:.1rem}}
+
+/* ---------- 提示块 ---------- */
+.callout{border:1px solid var(--border);border-left-width:3px;border-radius:10px;padding:.6rem .8rem;background:var(--panel-2);font-size:.86rem;word-break:break-word}
+.callout-ok{border-left-color:var(--ok)}
+.callout-warn{border-left-color:var(--warn)}
+.callout-err{border-left-color:var(--err)}
+.callout-title{font-weight:800;font-size:.78rem;margin-bottom:.15rem}
+.callout-ok .callout-title{color:var(--ok)}
+.callout-warn .callout-title{color:var(--warn)}
+.callout-err .callout-title{color:var(--err)}
+
+/* ---------- 验收清单 ---------- */
+.checklist{display:grid;gap:.4rem}
+.check-item{display:flex;align-items:flex-start;gap:.6rem;padding:.55rem .65rem;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer}
+.check-item:hover{border-color:var(--border-strong)}
+.check-item.weak{border-color:var(--warn)}
+.check-item input{margin-top:.28rem;width:1rem;height:1rem;accent-color:var(--accent);flex:none;cursor:pointer}
+.check-num{flex:none;width:1.4rem;height:1.4rem;border-radius:99px;background:var(--panel-3);color:var(--muted);font-size:.72rem;font-weight:800;display:grid;place-items:center}
+.check-text{font-size:.87rem;white-space:pre-wrap;word-break:break-word}
+.check-text.done{color:var(--muted);text-decoration:line-through}
+.check-progress{font-size:.72rem;color:var(--muted);text-align:right;margin-top:.4rem}
+.tag-warn{font-size:.62rem;font-weight:800;color:var(--warn);border:1px solid var(--warn);border-radius:.32rem;padding:0 .28rem;margin-left:.35rem;white-space:nowrap}
+
+/* ---------- 加载区 ---------- */
+.dropzone{border:2px dashed var(--border-strong);border-radius:12px;padding:1.5rem 1rem;text-align:center;color:var(--muted);font-size:.88rem;transition:.15s}
+.dropzone.drag{border-color:var(--accent);background:var(--accent-weak);color:var(--text)}
+.raw{margin-top:1.75rem}
+.raw summary{cursor:pointer;font-size:.8rem;color:var(--muted);font-weight:700}
+.val-summary{cursor:pointer;display:flex;align-items:center;gap:.5rem;list-style:none}
+.val-summary::-webkit-details-marker{display:none}
+
+/* ---------- 其它 ---------- */
+#toast{position:fixed;left:50%;bottom:1.25rem;transform:translateX(-50%) translateY(1rem);opacity:0;pointer-events:none;
+  background:#0f172a;color:#fff;padding:.5rem .95rem;border-radius:9px;font-size:.82rem;font-weight:600;transition:.2s;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.dark #toast{background:#e2e8f0;color:#0f172a}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:99px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div id="spec-viewer-app">
+  <aside id="sidebar">
+    <div style="padding:1rem 1rem .75rem;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:.55rem">
+        <div style="width:2rem;height:2rem;border-radius:.6rem;display:grid;place-items:center;color:#fff;font-weight:800;background:var(--accent)">S</div>
+        <div style="min-width:0;flex:1">
+          <div style="font-weight:800;line-height:1.2">SPEC 浏览器</div>
+          <div id="projectLabel" class="faint" style="font-size:.72rem">未加载</div>
+        </div>
+        <button id="themeBtn" class="btn btn-ghost" title="切换深浅色">◐</button>
+      </div>
+      <div style="display:flex;gap:.5rem;margin-top:.75rem">
+        <button id="pickBtn" class="btn btn-primary" style="flex:1">选择 specs 文件夹</button>
+        <button id="reloadBtn" class="btn btn-ghost" title="重新加载">↻</button>
+      </div>
+      <input id="search" type="search" class="input" style="margin-top:.65rem" placeholder="搜索名称 / id / 目标 / 内容…">
+    </div>
+    <div id="filters" style="padding:.7rem 1rem;border-bottom:1px solid var(--border);font-size:.82rem"></div>
+    <div id="stats" class="faint" style="padding:.5rem 1rem;font-size:.72rem"></div>
+    <div id="statsNote" class="faint" hidden style="padding:0 1rem .55rem;font-size:.7rem;line-height:1.55"></div>
+    <nav id="spec-list"></nav>
+  </aside>
+  <main id="main">
+    <div id="welcome" style="height:100%;display:grid;place-items:center;padding:1.5rem">
+      <div class="card card-pad" style="max-width:34rem;width:100%">
+        <h1 style="margin:0;font-size:1.25rem;font-weight:800">SPEC 浏览器</h1>
+        <p class="muted" style="font-size:.86rem;margin:.5rem 0 0">
+          一次性读取 <code class="code">specs/</code> 目录下所有符合 spec-builder 规则的 YAML，排版成人类可读的视图，并按 <b>G0~G7</b> 规则做校验（与 <code class="code">scripts/validate_spec.py</code> 一致）。本文件只是一份查看器，不会修改任何 SPEC；<b>验收标准的打勾也只存在浏览器本地，不会写回 SPEC</b>——要留下验收结论请用 <code class="code">scripts/spec_status.py</code>。
+        </p>
+        <div id="dropzone" class="dropzone" style="margin-top:1rem">
+          把 <b>specs 文件夹</b>拖到这里，或 <button type="button" id="pickBtn2" class="link">选择文件夹</button>
+        </div>
+        <div class="muted" style="font-size:.8rem;margin-top:1rem">若用本地服务打开，可自动发现同目录 YAML：</div>
+        <div style="display:flex;gap:.5rem;align-items:center;margin-top:.35rem">
+          <code class="code" id="httpCmd" style="flex:1">python3 -m http.server 8000</code>
+          <button class="copy-btn" data-copy="python3 -m http.server 8000">复制</button>
+        </div>
+        <p class="faint" style="font-size:.74rem;margin:.45rem 0 0">在项目根目录执行后访问 <code class="code">http://localhost:8000/specs/specs.html</code></p>
+        <div id="loadError" style="margin-top:1rem"></div>
+      </div>
+    </div>
+    <article id="detail" hidden></article>
+  </main>
+</div>
+<input id="dirInput" type="file" webkitdirectory multiple hidden>
+<div id="toast"></div>
+<script>
+(function(){
+'use strict';
+
+/* ================= 常量：与 scripts/validate_spec.py 对齐 ================= */
+var KNOWN_TYPES=['feature','bugfix','refactor','research','ops'];
+var KNOWN_STATUS=['draft','ready','in_progress','done','verified','blocked'];
+/* 生命周期门槛：与 scripts/validate_spec.py 的 G0~G7 保持一致 */
+var STALE_DAYS=14;
+var ACTIVE_STATUS=['ready','in_progress','done','verified'];
+var LIFECYCLE_KEYS=['blocked_reason','status_log','verification','follow_ups'];
+var ACCEPT_STATUS={pass:'通过',fail:'失败',not_run:'未运行'};
+/* G6 字段漂移：常见别名 → 标准字段（只提示，不自动改） */
+var FIELD_ALIASES={
+  implementation:'verification',acceptance_evidence:'verification',field_evidence:'verification',
+  verified:'verification',result:'verification',evidence_result:'verification',
+  known_p2:'follow_ups',issues:'follow_ups',remaining:'follow_ups'
+};
+var NO_STANDARD_FIELD={sync_targets:'放进 context 或 scope',defects:'放进 context 或 scope'};
+var COMMON_REQUIRED=['type','name','id','version','updated','status','context','acceptance_criteria','failure_handling'];
+var COMMON_PRESENT=['assumptions','blocking_questions','open_questions','related'];
+var TYPE_REQUIRED={
+  feature:['goal','inputs','outputs','constraints','steps'],
+  bugfix:['symptom','environment','reproduction','evidence','scope','root_cause','fix','regression_tests'],
+  refactor:['goal','current_state','motivation','scope','behavior_contract','steps','rollback'],
+  research:['question','background','methods','deliverables','decision_criteria','timebox'],
+  ops:['goal','target','changes','risks','rollback','monitoring']
+};
+var NESTED_REQUIRED={
+  feature:{outputs:['format']},
+  bugfix:{reproduction:['steps','expected','actual'],root_cause:['hypothesis'],fix:['approach']}
+};
+/* 与 scripts/validate_spec.py 的 TYPE_OPTIONAL 保持一致（G6 白名单用） */
+var TYPE_OPTIONAL={
+  feature:['out_of_scope','tools','examples'],
+  bugfix:['examples','steps','severity'],
+  refactor:['examples','out_of_scope','constraints'],
+  research:['examples','hypotheses'],
+  ops:['examples','constraints','out_of_scope']
+};
+var WEAK_WORDS=['正常','合理','流畅','完善','良好','稳定','友好','易用','整洁','差不多','尽量','基本','优化','提升体验'];
+var MEASURABLE=['0','1','2','3','4','5','6','7','8','9','通过','返回','包含','不再','一致','等于','报错','错误码','秒','毫秒','测试','=','P95','覆盖','提示','拒绝','拦截','限制','禁止','条','行','次','无'];
+var FAILURE_HINTS=['失败','异常','超时','错误','报错','拒绝','403','404','400','500','降级','回滚','上限','为空','并发','幂等','重复','越权','重试'];
+
+var TYPE_META={
+  feature:{label:'新功能',cls:'t-feature',color:'#10b981'},
+  bugfix:{label:'缺陷修复',cls:'t-bugfix',color:'#f43f5e'},
+  refactor:{label:'重构',cls:'t-refactor',color:'#0ea5e9'},
+  research:{label:'调研',cls:'t-research',color:'#8b5cf6'},
+  ops:{label:'运维变更',cls:'t-ops',color:'#f59e0b'},
+  unknown:{label:'其它 / 未识别',cls:'t-unknown',color:'#94a3b8'}
+};
+var STATUS_META={
+  draft:{label:'草稿',cls:'s-draft'},
+  ready:{label:'就绪',cls:'s-ready'},
+  in_progress:{label:'进行中',cls:'s-in_progress'},
+  done:{label:'已完成',cls:'s-done'},
+  verified:{label:'已验证',cls:'s-verified'},
+  blocked:{label:'受阻',cls:'s-blocked'},
+  unknown:{label:'未知',cls:'s-unknown'}
+};
+var LABELS={
+  goal:'目标',context:'背景与上下文',assumptions:'假设',blocking_questions:'阻塞问题',open_questions:'待确认问题',
+  inputs:'输入',outputs:'输出',constraints:'约束',out_of_scope:'不做（范围外）',tools:'可用工具',
+  steps:'执行步骤',acceptance_criteria:'验收标准',failure_handling:'失败处理',examples:'示例',
+  symptom:'现象',environment:'环境',reproduction:'复现',evidence:'证据',scope:'影响范围',
+  root_cause:'根因',fix:'修复方案',regression_tests:'回归测试',
+  current_state:'现状',motivation:'动机',behavior_contract:'行为契约（必须保持不变）',rollback:'回滚',
+  question:'核心问题',background:'背景',hypotheses:'假设 / 候选答案',methods:'调研方法',deliverables:'交付物',
+  decision_criteria:'决策标准',timebox:'时间盒',target:'变更对象',changes:'变更项',risks:'风险',monitoring:'监控',
+  related:'相关链接',severity:'严重程度',
+  verification:'验收记录',follow_ups:'遗留问题',status_log:'状态历史',blocked_reason:'受阻原因',
+  result:'结论',verifier:'验证人',verified_at:'验证时间',acceptance:'逐条验收结果',
+  commands:'执行的命令',artifacts:'产出物',unverified:'未验证项'
+};
+var META_KEYS=['type','name','id','version','updated','status','related','severity'].concat(LIFECYCLE_KEYS);
+var BODY_ORDER={
+  feature:['goal','context','inputs','outputs','constraints','out_of_scope','tools','steps','acceptance_criteria','failure_handling','examples','assumptions','blocking_questions','open_questions'],
+  bugfix:['symptom','context','environment','reproduction','evidence','scope','root_cause','fix','regression_tests','acceptance_criteria','failure_handling','examples','assumptions','blocking_questions','open_questions'],
+  refactor:['goal','context','current_state','motivation','scope','behavior_contract','constraints','out_of_scope','steps','rollback','acceptance_criteria','failure_handling','examples','assumptions','blocking_questions','open_questions'],
+  research:['question','background','context','hypotheses','methods','deliverables','decision_criteria','timebox','acceptance_criteria','failure_handling','examples','assumptions','blocking_questions','open_questions'],
+  ops:['goal','context','target','changes','risks','rollback','monitoring','acceptance_criteria','failure_handling','examples','assumptions','blocking_questions','open_questions']
+};
+
+/* ================= 小工具 ================= */
+var BT=String.fromCharCode(96);
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escAttr(s){return esc(s).replace(/"/g,'&quot;');}
+function isObj(v){return v!==null&&typeof v==='object'&&!Array.isArray(v);}
+function isArr(v){return Array.isArray(v);}
+function asArr(v){return v==null?[]:(Array.isArray(v)?v:[v]);}
+function inline(s){
+  var t=esc(s);
+  t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  var parts=t.split(BT);
+  if(parts.length>1){t=parts.map(function(p,i){return i%2===1?'<code class="code">'+p+'</code>':p;}).join('');}
+  return t;
+}
+function section(id,title,inner){
+  return '<section class="mt-7" id="sec-'+escAttr(id)+'"><h2 class="section-title">'+esc(title)+'</h2><div class="mt-3">'+inner+'</div></section>';
+}
+function kv(k,inner){return '<div class="kv"><div class="kv-k">'+esc(k)+'</div><div class="kv-v">'+inner+'</div></div>';}
+function table(cols,rows){
+  var h='<div class="tbl-wrap"><table class="tbl"><thead><tr>';
+  h+=cols.map(function(c){return '<th>'+esc(c)+'</th>';}).join('');
+  h+='</tr></thead><tbody>';
+  rows.forEach(function(r){h+='<tr>'+r.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';});
+  h+='</tbody></table></div>';
+  return h;
+}
+function callout(kind,title,inner){
+  return '<div class="callout callout-'+kind+'"><div class="callout-title">'+esc(title)+'</div><div>'+inner+'</div></div>';
+}
+function chip(cls,label){return '<span class="chip '+cls+'">'+esc(label)+'</span>';}
+
+/* ================= 校验（validate_spec.py 的浏览器版） ================= */
+function isBlank(v){
+  if(v===null||v===undefined){return true;}
+  if(typeof v==='string'){var t=v.trim();return t===''||t.toUpperCase()==='TBD';}
+  if(Array.isArray(v)){return v.length===0||v.every(isBlank);}
+  if(isObj(v)){var ks=Object.keys(v);return ks.length===0||ks.every(function(k){return isBlank(v[k]);});}
+  return false;
+}
+function weakItem(item){
+  var s=String(item),word=null,i;
+  for(i=0;i<WEAK_WORDS.length;i++){if(s.indexOf(WEAK_WORDS[i])>=0){word=WEAK_WORDS[i];break;}}
+  if(!word){return false;}
+  for(i=0;i<MEASURABLE.length;i++){if(s.indexOf(MEASURABLE[i])>=0){return false;}}
+  return s.length<25;
+}
+/* ---------- 生命周期门槛的小工具（容错：日期缺失/非法不崩） ---------- */
+function clipText(s,n){s=String(s==null?'':s);n=n||48;return s.length>n?s.slice(0,n)+'…':s;}
+/* R7：criterion 归一化用的标点类与编号正则。
+   与 scripts/validate_spec.py 的行面量逐字一致（用 \xNN，Python 标准库 re 不支持 \p{P}） */
+var PUNCT_RE=/[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e\u2000-\u206f\u3000-\u303f\uff00-\uffef]/g;
+var AC_ID_RE=/AC\s*[#＃]?\s*\d+(\s*[-–~,、]\s*\d+)*/gi;
+/* 去首尾空白 → 去内部空白 → 统一大小写 → 去尾部标点 */
+function normCriterion(c){
+  var s=String(c==null?'':c).trim().replace(/\s+/g,'').toLowerCase();
+  return s.replace(new RegExp(PUNCT_RE.source+'+$','g'),'');
+}
+/* 剥掉 AC#1 / AC1 / AC 1-3 这类编号引用，再去标点与空白 */
+function criterionBare(c){
+  return normCriterion(c).replace(AC_ID_RE,'').replace(PUNCT_RE,'').replace(/\s+/g,'');
+}
+/* R7.3：报错里说清 answer 当前是什么类型（词表与 Python 的 _answer_type_name 逐字一致） */
+function jsTypeOf(v){
+  if(v===null||v===undefined){return 'null';}
+  if(typeof v==='boolean'){return 'bool';}
+  if(typeof v==='number'){return Number.isInteger(v)?'int':'float';}
+  if(Array.isArray(v)){return 'list';}
+  if(typeof v==='object'){return 'dict';}
+  return typeof v;
+}
+/* 回原文取某个顶层标量的写法：js-yaml 会把 3.0 解析成 3，只能看原文（R5） */
+function rawScalarOf(raw,key){
+  if(typeof raw!=='string'||!raw){return null;}
+  var lines=raw.split(/\r?\n/),i,m;
+  var pat=new RegExp('^\\s*'+key+'\\s*:\\s*(.*)$');
+  var specStart=-1;
+  for(i=0;i<lines.length;i++){if(/^spec\s*:\s*(#.*)?$/.test(lines[i])){specStart=i;break;}}
+  if(specStart>=0){
+    var base=null;
+    for(i=specStart+1;i<lines.length;i++){
+      var line=lines[i];
+      if(!line.trim()||/^\s*#/.test(line)){continue;}
+      var ind=line.match(/^\s*/)[0].length;
+      if(ind===0){break;}
+      if(base==null){base=ind;}
+      if(ind<base){break;}
+      if(ind===base&&(m=pat.exec(line))){return stripInlineComment(m[1]);}
+    }
+    return null;
+  }
+  for(i=0;i<lines.length;i++){if((m=pat.exec(lines[i]))){return stripInlineComment(m[1]);}}
+  return null;
+}
+function stripInlineComment(v){
+  var t=String(v==null?'':v).trim();
+  if(!t){return t;}
+  if(t.charAt(0)!=='"'&&t.charAt(0)!=="'"){var i=t.indexOf(' #');if(i>=0){t=t.slice(0,i).trim();}}
+  return t;
+}
+/* 3.0 / 1e2 这类不是整数的写法（Python 侧 isinstance(version,int) 的等价物） */
+function looksDecimalNumber(t){
+  return /^-?(\d+\.\d*|\.\d+|\d+[eE][-+]?\d+)$/.test(String(t==null?'':t));
+}
+/* R2：not_run 的条目要能在 verification.unverified 里找到（criterion 文本或前 8 个字匹配） */
+function unverifiedMentions(verification,criterion){
+  var c=String(criterion==null?'':criterion);
+  if(isBlank(c)){return true;}   /* criterion 为空时另有 G2 error，这里不重复报 */
+  var text=asArr(verification&&verification.unverified).map(function(u){return String(u==null?'':u);}).join(' ');
+  return text.indexOf(c)>=0;     /* 与 Python 完全一致：criterion 必须出现在 unverified 文本里 */
+}
+function daysSince(s){
+  if(s==null||typeof s!=='string'){return null;}
+  var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s.trim());
+  if(!m){return null;}
+  var y=+m[1],mo=+m[2],d=+m[3];
+  if(mo<1||mo>12||d<1||d>31){return null;}
+  var t=new Date(y,mo-1,d);
+  if(isNaN(t.getTime())){return null;}
+  var now=new Date();
+  var today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  return Math.round((today.getTime()-t.getTime())/86400000);
+}
+function normOpenQuestions(v){
+  return asArr(v).map(function(item,i){
+    if(isObj(item)){
+      var st;
+      if(item.status==null){
+        /* 老写法只有 answered/answer：答过就算 answered，否则视为没问过（与 Python norm_open 一致） */
+        st=(item.answered===true||!isBlank(item.answer))?'answered':'open';
+      }else{
+        st=String(item.status);  /* 写了但写错的值保留原样，交给 G1 报"不是合法取值" */
+      }
+      var q=item.q==null?(item.question==null?'':item.question):item.q;
+      return {i:i,q:String(q),status:st,obj:item,plain:false};
+    }
+    /* 兼容：纯字符串 = {q, status: open}，即"问都没问过" */
+    return {i:i,q:String(item==null?'':item),status:'open',obj:null,plain:true};
+  });
+}
+function unansweredBlockingList(v){
+  var out=[];
+  asArr(v).forEach(function(b,i){
+    if(!isObj(b)){if(!isBlank(b)){out.push({i:i,text:String(b)});}return;}
+    if(b.answered!==true){out.push({i:i,text:String(b.q==null?'':b.q)});}
+  });
+  return out;
+}
+function specMarks(spec){
+  spec=spec||{};
+  var st=spec.status;
+  var qs=normOpenQuestions(spec.open_questions);
+  var log=asArr(spec.status_log);
+  var stale=null;
+  if(st==='ready'||st==='in_progress'){
+    var last=log.length?log[log.length-1]:null;
+    stale=daysSince(isObj(last)?last.date:null);
+    if(stale==null){stale=daysSince(spec.updated);}
+  }
+  return {
+    unasked:qs.filter(function(q){return q.status==='open';}).length,
+    assumed:qs.filter(function(q){return q.status==='assumed';}).length,
+    answered:qs.filter(function(q){return q.status==='answered';}).length,
+    blockingOpen:unansweredBlockingList(spec.blocking_questions).length,
+    staleDays:stale,
+    hasVerification:isObj(spec.verification)&&!isBlank(spec.verification.result),
+    logCount:log.length
+  };
+}
+function validateSpec(spec,raw){
+  var errors=[],warnings=[],checks=[];
+  var stype=spec.type;
+  if(KNOWN_TYPES.indexOf(stype)<0){
+    errors.push('type 缺失或非法：'+JSON.stringify(stype)+'；应为 '+KNOWN_TYPES.join('/'));
+    return {errors:errors,warnings:warnings,checks:checks};
+  }
+  checks.push('type = '+stype);
+  var status=spec.status;
+  var statusOk=KNOWN_STATUS.indexOf(status)>=0;
+  /* G0 类型与枚举合法：status 非法或缺失已从 warning 升级为 error */
+  if(!statusOk){errors.push('G0: status 缺失或非法：'+JSON.stringify(status)+'；应为 '+KNOWN_STATUS.join(' / '));}
+  else{checks.push('status = '+status);}
+
+  COMMON_REQUIRED.concat(TYPE_REQUIRED[stype]||[]).forEach(function(f){
+    if(!(f in spec)){errors.push('缺少必填字段：'+f);}
+    else if(isBlank(spec[f])){errors.push('必填字段为空：'+f);}
+  });
+  COMMON_PRESENT.forEach(function(f){if(!(f in spec)){errors.push('缺少字段（可为空数组）：'+f);}});
+
+  var sid=spec.id;
+  if(isBlank(sid)){errors.push('缺少稳定标识 id（格式 <type>-<slug>）');}
+  else{
+    sid=String(sid);
+    if(sid.indexOf(String(stype)+'-')!==0){errors.push('id 应以 '+stype+'- 开头：'+JSON.stringify(sid));}
+    else if(/\s/.test(sid)||/[A-Z]/.test(sid)){warnings.push('id 建议全小写、无空格：'+JSON.stringify(sid));}
+    checks.push('id = '+sid);
+  }
+
+  var version=spec.version;
+  /* R5：js-yaml 把 3.0 解析成 3，要回原文看写法，结论才和 CLI 一致 */
+  var versionRaw=rawScalarOf(raw,'version');
+  var versionText=versionRaw==null?'':versionRaw.replace(/^["']|["']$/g,'');
+  var versionIsFloat=versionText!==''&&looksDecimalNumber(versionText);
+  if(typeof version!=='number'||!isFinite(version)||Math.floor(version)!==version||version<1||versionIsFloat){
+    warnings.push('version 应为 >= 1 的整数：'+(versionIsFloat?versionText:JSON.stringify(version)));
+  }
+  var updated=spec.updated;
+  if(typeof updated!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(updated)){warnings.push('updated 应为 YYYY-MM-DD：'+JSON.stringify(updated));}
+
+  /* G8（原就绪门槛 ready + blocking_questions 非空）已被 G1 取代：语义更强，逐条查 answered */
+
+  var nested=NESTED_REQUIRED[stype]||{};
+  Object.keys(nested).forEach(function(parent){
+    var node=spec[parent];
+    if(isObj(node)){nested[parent].forEach(function(child){if(isBlank(node[child])){errors.push('必填子字段为空：'+parent+'.'+child);}});}
+  });
+
+  var criteria=asArr(spec.acceptance_criteria).map(function(c){return typeof c==='string'?c:JSON.stringify(c);});
+  if(!criteria.length){errors.push('acceptance_criteria 为空或缺失');}
+  else{
+    checks.push('acceptance_criteria = '+criteria.length+' 条');
+    criteria.forEach(function(item,i){if(weakItem(item)){warnings.push('第 '+(i+1)+' 条验收标准疑似不可验证（含弱词且无量化线索）：'+item);}});
+    if((stype==='feature'||stype==='refactor'||stype==='ops')&&criteria.length<3){warnings.push('验收标准偏少（'+criteria.length+' 条）；建议覆盖正常、边界、失败路径');}
+    var joined=criteria.join(' ');
+    if(!FAILURE_HINTS.some(function(h){return joined.indexOf(h)>=0;})){warnings.push('验收标准似乎只覆盖正常路径；建议补充边界（空/上限/并发）与失败（异常/超时/权限）路径');}
+  }
+
+  if(!asArr(spec.examples).length){warnings.push('没有 examples；建议至少补一个输入→输出示例');}
+
+  if(stype==='bugfix'){
+    var root=isObj(spec.root_cause)?spec.root_cause:{};
+    var fix=isObj(spec.fix)?spec.fix:{};
+    if(root.confirmed===false&&!isBlank(fix.approach)){warnings.push('root_cause.confirmed 为 false；fix 应先包含定位/验证步骤，不要直接改代码');}
+    var cj=criteria.join(' ');
+    if(criteria.length&&!(cj.indexOf('复现')>=0||cj.indexOf('回归')>=0||cj.indexOf('不再')>=0||cj.indexOf('原')>=0)){warnings.push('bugfix 验收标准建议包含“原复现步骤不再出现”或“回归测试通过”');}
+  }
+  if(stype==='refactor'){
+    var bc=asArr(spec.behavior_contract);
+    if(bc.length&&bc.length<2){warnings.push('behavior_contract 至少列出 2 条必须保持不变的外部行为');}
+  }
+  if(stype==='ops'){
+    var risks=asArr(spec.risks);
+    if(risks.length&&risks.some(isBlank)){warnings.push('risks 条目不完整');}
+    var mon=asArr(spec.monitoring);
+    if(mon.length&&mon.some(isBlank)){warnings.push('monitoring 条目不完整');}
+  }
+
+  /* ================= 生命周期门槛 G1~G7（与 scripts/validate_spec.py 的 G1~G7 保持一致） =================
+     归属（与 Python 逐条对齐）：
+       G1  ready/in_progress 可开工；done/verified 时由 G2 复用（不许有没问过用户的问题）
+       G2  done/verified 有据；assumed 的 if_wrong/confirm_by 必填；status_log 末条 to 不一致时门槛号也是 G2
+       G3  verified 必须 independent/user + verifier + verified_at，且没有 fail
+       G4  blocked 必须有 blocked_reason
+       G5  status_log 末条 to（非 done/verified 时）/ version 与顶层对齐；缺失只 warning
+       G6  未知顶层字段 warning（白名单与 Python 的 TYPE_REQUIRED/TYPE_OPTIONAL/META_FIELDS 一致）
+       G7  ready/in_progress 超过 STALE_DAYS 天没动 → warning
+       G8  已被 G1 取代（原 ready + blocking_questions 非空） */
+  var blocking=asArr(spec.blocking_questions);
+  var openQs=normOpenQuestions(spec.open_questions);
+  var verification=isObj(spec.verification)?spec.verification:null;
+  var logEntries=asArr(spec.status_log).filter(isObj);
+  /* Python 里 None 与缺失等价，用 pyEq 模拟（版本号写 "3" 这种漂移也要报出来） */
+  function pyEq(a,b){if(a==null&&b==null){return true;}return a===b;}
+
+  /* G1 可以开工：blocking_questions 全部 answered；open_questions 没有 open，且 status 取值合法 */
+  if(status==='ready'||status==='in_progress'||status==='done'||status==='verified'){
+    blocking.forEach(function(b,i){
+      var answered=isObj(b)?(b.answered===true):false;
+      if(!answered){
+        errors.push('G1: blocking_questions 第 '+(i+1)+' 条还没拿到答复：'+clipText(isObj(b)?(b.q==null?'':b.q):b)
+          +'。下一步：用提问工具问用户，把答复原话写进 answer 并把 answered 改成 true');
+        return;
+      }
+      /* R1 + R7.3：不能只写 answered: true 就假装问过；answer 还必须是字符串 */
+      if(typeof b.answer!=='string'){
+        errors.push('G1: blocking_questions 第 '+(i+1)+' 条标了 answered: true，但 answer 必须是字符串（当前是 '+jsTypeOf(b.answer)+'）——把用户原话写成文本，例如 answer: "50 MB，超了就分批"');
+      }else if(isBlank(b.answer)){
+        errors.push('G1: blocking_questions 第 '+(i+1)+' 条标了 answered: true，但 answer 是空的——你说问过用户了，用户原话是什么？把答复原话填进 answer，问完再标已答复');
+      }
+      if(isBlank(b.asked_at)){
+        warnings.push('G1: blocking_questions 第 '+(i+1)+' 条标了已答复，但没写 asked_at（什么时候问的）');
+      }
+    });
+    openQs.forEach(function(q){
+      if(q.status==='open'){
+        errors.push('G1: open_questions 第 '+(q.i+1)+' 条仍是 open（= 还没问过用户）：'+clipText(q.q)
+          +'。下一步：用提问工具问用户，把答复原话写进 answer 并把 status 改成 answered；用户明确说先做时改成 assumed，并填 assumption / if_wrong / confirm_by');
+      }else if(['open','answered','assumed'].indexOf(q.status)<0){
+        errors.push('G1: open_questions 第 '+(q.i+1)+' 条 status='+JSON.stringify(q.status)+' 不是合法取值（open | answered | assumed）');
+      }else if(q.status==='answered'){
+        /* R1 + R7.3：answered 必须有用户原话，而且必须是字符串 */
+        var qa=q.obj||{};
+        if(typeof qa.answer!=='string'){
+          errors.push('G1: open_questions 第 '+(q.i+1)+' 条 status=answered，但 answer 必须是字符串（当前是 '+jsTypeOf(qa.answer)+'）——把用户原话写成文本，例如 answer: "50 MB，超了就分批"');
+        }else if(isBlank(qa.answer)){
+          errors.push('G1: open_questions 第 '+(q.i+1)+' 条 status=answered，但 answer 是空的——把用户原话填进 answer，不要用自己的判断代替（用户没答就保持 open）');
+        }
+        if(isBlank(qa.asked_at)){
+          warnings.push('G1: open_questions 第 '+(q.i+1)+' 条 status=answered，但没写 asked_at（什么时候问的）');
+        }
+      }
+    });
+  }
+
+  /* G2 完成必须有据 */
+  if(status==='done'||status==='verified'){
+    if(blocking.length){
+      errors.push('G2: status='+status+' 但仍挂着 '+blocking.length+' 条 blocking_questions（第 1 条：'+clipText(isObj(blocking[0])?(blocking[0].q==null?'':blocking[0].q):blocking[0])
+        +'）。已答复的阻塞问题，其结论要落进 context / acceptance_criteria / follow_ups，不能只留在问题列表里');
+    }
+    if(!verification){
+      errors.push('G2: status='+status+' 但没有 verification（或 verification 不是映射）：跑 scripts/spec_status.py --to '+status
+        +' --by <你> --note "3 项 AC 全过" --result "一句话结论+关键数字" --acceptance "AC#1 描述|pass|证据" 可一次补齐');
+    }else{
+      if(isBlank(verification.result)){errors.push('G2: status='+status+' 但 verification.result 为空；补一句结论+关键数字');}
+      var acc=asArr(verification.acceptance);
+      if(isBlank(acc)){
+        errors.push('G2: status='+status+' 但 verification.acceptance 为空；逐条对照 acceptance_criteria 写 criterion / status(pass|fail|not_run) / evidence');
+      }else{
+        var seenCrit={};
+        acc.forEach(function(a,i){
+          if(!isObj(a)){errors.push('G2: verification.acceptance 第 '+(i+1)+' 条不是映射；应为 {criterion, status, evidence}');return;}
+          if(isBlank(a.criterion)){
+            errors.push('G2: verification.acceptance 第 '+(i+1)+' 条 criterion 为空；每条都要写清对应哪条验收标准');
+          }else{
+            /* R7.1 复制粘贴查重（归一化后相同就提示；3 条以上各报一条，都指向首次出现的那条） */
+            var nc=normCriterion(a.criterion);
+            if(nc){
+              if(seenCrit[nc]!=null){
+                warnings.push('G2: 第 '+(seenCrit[nc]+1)+'、'+(i+1)+' 条验收结论的 criterion 一模一样，像是复制粘贴；每条 AC 要写它自己的实际结论');
+              }else{seenCrit[nc]=i;}
+            }
+            /* R7.2 只剩编号：剥掉 AC#1 / AC1 / AC 1-3 之后没剩什么内容 */
+            if(criterionBare(a.criterion).length<2){
+              warnings.push('G2: 第 '+(i+1)+' 条验收结论的 criterion 只有编号，看不出验的是什么；请写上 AC 的原文或这条的实际结论');
+            }
+          }
+          var ast=String(a.status==null?'':a.status);
+          if(!ACCEPT_STATUS.hasOwnProperty(ast)){
+            errors.push('G2: verification.acceptance 第 '+(i+1)+' 条 status='+JSON.stringify(a.status==null?'':a.status)+' 非法或缺失；应为 pass | fail | not_run');
+            return;
+          }
+          /* R2：pass/fail 必须给证据；not_run 必须进 unverified */
+          if((ast==='pass'||ast==='fail')&&isBlank(a.evidence)){
+            errors.push('G2: verification.acceptance 第 '+(i+1)+' 条 status='+ast+'，但没有 evidence——通过/失败都要给出命令输出、观测数字或路径');
+          }
+          if(ast==='not_run'&&!unverifiedMentions(verification,a.criterion)){
+            warnings.push('G2: verification.acceptance 第 '+(i+1)+' 条是 not_run，但没写进 verification.unverified——说清哪部分没验、为什么');
+          }
+        });
+        /* R2：条数要跟 acceptance_criteria 对得上（与 Python 一致：只在 acceptance 非空时比对） */
+        var acCount=asArr(spec.acceptance_criteria).length;
+        if(acCount){
+          if(acc.length<acCount){
+            errors.push('G2: verification.acceptance 只有 '+acc.length+' 条，而 acceptance_criteria 有 '+acCount+' 条——要逐条对照。确实想合并成一条结论的，就把 acceptance_criteria 合并成一条，而不是用一条结论盖住 '+acCount+' 条标准');
+          }else if(acc.length>acCount){
+            warnings.push('G2: verification.acceptance 有 '+acc.length+' 条，比 acceptance_criteria（'+acCount+' 条）还多；确认不是 AC 漏写了');
+          }
+        }
+      }
+    }
+    /* assumed 是知情假设：if_wrong / confirm_by 必填（error），assumption 必填（warning） */
+    openQs.forEach(function(q){
+      if(q.status!=='assumed'){return;}
+      var o=q.obj||{};
+      [['if_wrong','假设错了会怎样'],['confirm_by','最迟什么时候回头确认']].forEach(function(pair){
+        if(isBlank(o[pair[0]])){errors.push('G2: open_questions 第 '+(q.i+1)+' 条是 assumed（知情假设）但缺 '+pair[0]+'（'+pair[1]+'）');}
+      });
+      if(isBlank(o.assumption)){warnings.push('G2: open_questions 第 '+(q.i+1)+' 条是 assumed 但 assumption 为空；写清按什么假设推进');}
+    });
+    if(status==='done'&&verification&&!isBlank(verification.verified_by)&&String(verification.verified_by)!=='self'){
+      warnings.push('G2: status=done 但 verification.verified_by='+JSON.stringify(verification.verified_by)+'；done 表示自查（verified_by: self），已有独立复核/用户确认请改标 verified');
+    }
+  }
+
+  /* G3 已验证要有人 */
+  if(status==='verified'){
+    var ver=verification||{};
+    var by=ver.verified_by;
+    if(['independent','user'].indexOf(String(by==null?'':by))<0){
+      errors.push('G3: status=verified 但 verification.verified_by='+JSON.stringify(by==null?'':by)+'；verified 必须由独立复核者或用户确认（independent | user），自查只能标 done');
+    }
+    if(isBlank(ver.verifier)){errors.push('G3: status=verified 但 verification.verifier 为空；写清是谁复核的（agent 名 / 人名）');}
+    if(isBlank(ver.verified_at)){errors.push('G3: status=verified 但 verification.verified_at 为空；复核日期写 YYYY-MM-DD');}
+    var failed=asArr(ver.acceptance).filter(function(a){return isObj(a)&&a.status==='fail';});
+    if(failed.length){errors.push('G3: verification.acceptance 里有 '+failed.length+' 条 fail；有失败项不能标 verified：降级为 done，并把失败项写进 verification.unverified 与 follow_ups');}
+  }
+
+  /* G4 受阻要说原因 */
+  if(status==='blocked'&&isBlank(spec.blocked_reason)){errors.push('G4: status=blocked 但 blocked_reason 为空；写清卡在哪、需要谁做什么');}
+
+  /* G5 状态要留痕：末条 to / version 与顶层对齐；缺失或为空只告警（老语料都没有 status_log） */
+  if(!logEntries.length){
+    if(statusOk&&status!=='draft'){
+      warnings.push('G5: 没有 status_log（历史 SPEC）：看不出状态是什么时候、被谁改的。建议补一条最近的状态转移，之后用 scripts/spec_status.py 推进状态会自动追加');
+    }
+  }else{
+    var lastLog=logEntries[logEntries.length-1];
+    if(!pyEq(lastLog.to,status)){
+      /* 与 Python 一致：done/verified 时这条毛病归 G2，其余状态归 G5，只报一次 */
+      var toGate=(status==='done'||status==='verified')?'G2':'G5';
+      errors.push(toGate+': status_log 最后一条是 to='+JSON.stringify(lastLog.to==null?'':lastLog.to)+'，与当前 status='+JSON.stringify(status==null?'':status)
+        +' 不一致；手改 status 不算数，用 scripts/spec_status.py --to '+String(status==null?'':status)+' --by <你> --note "..." 让脚本同时改 status/version/updated/status_log');
+    }
+    if(!pyEq(lastLog.version,spec.version)){
+      errors.push('G5: status_log 最后一条 version='+JSON.stringify(lastLog.version==null?'':lastLog.version)+' 与顶层 version='+JSON.stringify(spec.version==null?'':spec.version)+' 不一致；改状态必须同时 version +1');
+    }
+  }
+
+  /* G6 字段不要漂移：白名单 = COMMON_REQUIRED + COMMON_PRESENT + META_FIELDS + TYPE_REQUIRED + TYPE_OPTIONAL（与 Python 一致） */
+  var allowed={};
+  COMMON_REQUIRED.concat(COMMON_PRESENT,LIFECYCLE_KEYS,TYPE_REQUIRED[stype]||[],TYPE_OPTIONAL[stype]||[]).forEach(function(k){allowed[k]=1;});
+  Object.keys(spec).forEach(function(k){
+    if(allowed[k]){return;}
+    if(FIELD_ALIASES[k]){warnings.push('G6: 疑似字段漂移：未知顶层字段 '+JSON.stringify(k)+'，标准字段是 '+JSON.stringify(FIELD_ALIASES[k])+'；把验收结论/证据搬进去，不要自创字段名');}
+    else if(NO_STANDARD_FIELD[k]){warnings.push('G6: 疑似字段漂移：未知顶层字段 '+JSON.stringify(k)+'，没有对应的标准字段；请'+NO_STANDARD_FIELD[k]);}
+    else{warnings.push('G6: 未知顶层字段 '+JSON.stringify(k)+'。标准字段见 references/spec-field-guide.md，不用就删掉');}
+  });
+
+  /* G7 状态别放烂：ready / in_progress 超过 STALE_DAYS 天没动 → warning */
+  if(status==='ready'||status==='in_progress'){
+    var when=logEntries.length?logEntries[logEntries.length-1].date:null;
+    var src='status_log 末条 date';
+    if(isBlank(when)){when=spec.updated;src='updated（没有 status_log）';}
+    var since=daysSince(when);
+    if(since!=null&&since>STALE_DAYS){
+      warnings.push('G7: status='+status+' 但最后一次状态变动是 '+String(when)+'（'+src+'，'+since+' 天前，阈值 '+STALE_DAYS+' 天）；确认是"做完了没改状态"还是卡住了——做完立刻跑 scripts/spec_status.py --to done，卡住则 --to blocked --reason "..."');
+    }
+  }
+
+  /* 与 Python 侧一致：不属于 G1~G7 的基础结构/质量类信息统一归 G0 */
+  function tagG0(m){return /^G\d: /.test(m)?m:('G0: '+m);}
+  errors=errors.map(tagG0);
+  warnings=warnings.map(tagG0);
+  return {errors:errors,warnings:warnings,checks:checks};
+}
+
+/* ================= 状态 ================= */
+var state={specs:[],selected:null,current:null,q:'',type:'all',status:'all',hideNon:true,theme:'light'};
+var $=function(id){return document.getElementById(id);};
+
+/* ================= 解析与入库 ================= */
+function buildRecord(e){
+  var rec={name:e.name||'(未命名)',path:e.path||e.name||'',raw:e.text||'',parseError:null,isSpec:false,spec:null,type:'unknown',id:'',errors:[],warnings:[],checks:[]};
+  if(e.error){rec.parseError='读取失败：'+e.error;return rec;}
+  var doc;
+  try{if(typeof jsyaml==='undefined'){throw new Error('js-yaml 未加载（检查网络/CDN）');}doc=jsyaml.load(rec.raw);}
+  catch(err){rec.parseError='YAML 解析失败：'+(err&&err.message?err.message:String(err));return rec;}
+  if(!isObj(doc)){rec.parseError='顶层不是 YAML 映射';return rec;}
+  var spec=isObj(doc.spec)?doc.spec:(doc.type?doc:null);
+  if(!spec){rec.parseError='未找到 spec 根节点或 type 字段，可能不是 SPEC 文件';return rec;}
+  rec.spec=spec;rec.isSpec=true;rec.type=(KNOWN_TYPES.indexOf(spec.type)>=0)?spec.type:'unknown';
+  rec.id=spec.id?String(spec.id):'';
+  if(spec.name){rec.name=String(spec.name);}
+  var v=validateSpec(spec,rec.raw);
+  rec.errors=v.errors;rec.warnings=v.warnings;rec.checks=v.checks;
+  rec.marks=specMarks(spec);
+  return rec;
+}
+function ingest(entries){
+  entries=entries.filter(function(e){return e&&/\.ya?ml$/i.test(e.name||'');});
+  entries.sort(function(a,b){return String(a.name).localeCompare(String(b.name));});
+  state.specs=entries.map(buildRecord);
+  $('projectLabel').textContent=state.specs.length?state.specs.length+' 个 YAML 文件':'未加载';
+  renderFilters();renderStats();renderList();
+  var hash='';
+  try{hash=decodeURIComponent(location.hash.replace(/^#/,''));}catch(e){}
+  var rec=null;
+  if(hash){for(var i=0;i<state.specs.length;i++){var r=state.specs[i];if(r.id===hash||r.path===hash||r.name===hash){rec=r;break;}}}
+  if(!rec&&state.specs.length){rec=state.specs[0];}
+  if(rec){select(rec.path);}else{showWelcome();}
+}
+
+/* ================= 侧栏 ================= */
+function filtered(){
+  var q=state.q.trim().toLowerCase();
+  return state.specs.filter(function(rec){
+    if(state.hideNon&&!rec.isSpec){return false;}
+    if(state.type!=='all'&&rec.type!==state.type){return false;}
+    if(state.status!=='all'){var s=rec.spec&&rec.spec.status;if(s!==state.status){return false;}}
+    if(!q){return true;}
+    var hay=[rec.name,rec.path,rec.id,rec.spec&&rec.spec.name,rec.spec&&rec.spec.goal,rec.spec&&rec.spec.context,rec.spec&&rec.spec.symptom,rec.spec&&rec.spec.question].filter(Boolean).join(' ').toLowerCase();
+    return hay.indexOf(q)>=0||rec.raw.toLowerCase().indexOf(q)>=0;
+  });
+}
+function renderFilters(){
+  var counts={all:0};
+  KNOWN_TYPES.forEach(function(t){counts[t]=0;});
+  state.specs.forEach(function(rec){if(state.hideNon&&!rec.isSpec){return;}counts.all++;if(counts[rec.type]!=null){counts[rec.type]++;}});
+  var h='<div style="display:flex;flex-wrap:wrap;gap:.35rem">';
+  var chips=[['all','全部']].concat(KNOWN_TYPES.map(function(t){return [t,TYPE_META[t].label];}));
+  chips.forEach(function(pair){
+    var on=state.type===pair[0];
+    h+='<button class="chip '+(pair[0]==='all'?(on?'t-unknown':''):TYPE_META[pair[0]].cls)+'" data-type="'+pair[0]+'" style="cursor:pointer;border:1px solid '+(on?'currentColor':'transparent')+';opacity:'+(on?'1':'.72')+'">'+esc(pair[1])+' <span style="opacity:.7">'+(counts[pair[0]]||0)+'</span></button>';
+  });
+  h+='</div>';
+  h+='<div style="display:flex;align-items:center;gap:.5rem;margin-top:.55rem">';
+  h+='<select id="statusSel" class="input" style="flex:1">';
+  h+='<option value="all"'+(state.status==='all'?' selected':'')+'>全部状态</option>';
+  KNOWN_STATUS.forEach(function(s){h+='<option value="'+s+'"'+(state.status===s?' selected':'')+'>'+STATUS_META[s].label+'</option>';});
+  h+='</select>';
+  h+='<label class="faint" style="font-size:.72rem;display:flex;align-items:center;gap:.3rem;white-space:nowrap"><input type="checkbox" id="hideNon"'+(state.hideNon?' checked':'')+'> 隐藏非 SPEC</label>';
+  h+='</div>';
+  $('filters').innerHTML=h;
+}
+function listItem(rec){
+  var active=state.selected===rec.path?' active':'';
+  var t=TYPE_META[rec.type]||TYPE_META.unknown;
+  var st=STATUS_META[(rec.spec&&rec.spec.status)||'unknown']||STATUS_META.unknown;
+  var issues;
+  if(rec.parseError){issues='<span class="badge badge-err">解析失败</span>';}
+  else if(rec.errors.length){issues='<span class="badge badge-err">'+rec.errors.length+' error</span>';}
+  else if(rec.warnings.length){issues='<span class="badge badge-warn">'+rec.warnings.length+' warn</span>';}
+  else{issues='<span class="badge badge-ok">OK</span>';}
+  return '<button class="side-item'+active+'" data-path="'+escAttr(rec.path)+'">'
+    +'<span class="side-item-name">'+esc(rec.name)+'</span>'
+    +'<span class="side-item-meta">'+esc(rec.id||rec.path)+'</span>'
+    +'<span class="side-item-badges">'+chip(t.cls,t.label)+'<span class="chip '+st.cls+'">'+st.label+'</span>'+statusMarkBadges(rec)+issues+'</span>'
+    +'</button>';
+}
+function renderList(){
+  var arr=filtered();
+  var groups={};
+  arr.forEach(function(rec){var t=rec.isSpec?rec.type:'__other__';(groups[t]=groups[t]||[]).push(rec);});
+  var order=['feature','bugfix','refactor','research','ops','unknown','__other__'];
+  var total=state.specs.length;var h='';
+  if(!total){$('spec-list').innerHTML='<div class="muted" style="padding:.75rem;font-size:.82rem">还没有加载 SPEC。</div>';return;}
+  order.forEach(function(t){
+    var items=groups[t];if(!items||!items.length){return;}
+    var meta=TYPE_META[t]||TYPE_META.unknown;
+    var label=t==='__other__'?'未识别 / 解析失败':(meta.label+' · '+t);
+    h+='<div style="margin-top:.25rem">';
+    h+='<div class="side-group"><span class="side-dot" style="background:'+meta.color+'"></span>'+esc(label)+'<span style="margin-left:auto">'+items.length+'</span></div>';
+    items.forEach(function(rec){h+=listItem(rec);});
+    h+='</div>';
+  });
+  if(!h){h='<div class="muted" style="padding:.75rem;font-size:.82rem">没有匹配的 SPEC。</div>';}
+  $('spec-list').innerHTML=h;
+}
+function renderStats(){
+  var valid=0,errs=0,warns=0,review=0,verified=0,unasked=0;
+  state.specs.forEach(function(r){
+    if(r.isSpec){valid++;}
+    errs+=r.errors.length;warns+=r.warnings.length;
+    var mk=r.marks||{};var st=r.spec&&r.spec.status;
+    if(st==='done'){review++;}
+    if(st==='verified'){verified++;}
+    if(mk.unasked){unasked+=mk.unasked;}
+  });
+  $('stats').textContent=valid+' 份 SPEC · '+errs+' error · '+warns+' warning'
+    +(review?(' · '+review+' 待复核'):'')
+    +(verified?(' · '+verified+' 已验证'):'')
+    +(unasked?(' · '+unasked+' 个问题没问过'):'');
+  /* 老 SPEC 会显示一大片 error，这里给一句解释，免得以为工具坏了（G1/G2 正是要暴露这些） */
+  var note=$('statsNote');
+  if(note){
+    note.hidden=!errs;
+    note.innerHTML=errs?('历史 SPEC 显示 error 属正常：多为缺少 <code class="code">status_log</code> / <code class="code">verification</code>，或者还带着没问过用户的问题——这些正是要暴露的。只想看结构问题可跑 <code class="code">python3 scripts/validate_spec.py &lt;spec&gt; --lenient</code>。'):'';
+  }
+}
+
+/* ================= 详情渲染 ================= */
+function select(path){
+  var rec=null,i;
+  for(i=0;i<state.specs.length;i++){if(state.specs[i].path===path){rec=state.specs[i];break;}}
+  if(!rec){return;}
+  state.selected=path;state.current=rec;
+  try{history.replaceState(null,'','#'+encodeURIComponent(rec.id||rec.name));}catch(e){}
+  renderList();renderDetail(rec);
+  var m=$('main');if(m){m.scrollTop=0;}
+}
+function renderHeader(rec){
+  var s=rec.spec;
+  var t=TYPE_META[rec.type]||TYPE_META.unknown;
+  var st=STATUS_META[s.status]||STATUS_META.unknown;
+  var h='<div style="display:flex;flex-wrap:wrap;gap:.4rem;align-items:center">'+chip(t.cls,t.label)+'<span class="chip '+st.cls+'">'+st.label+'</span>'+statusMarkBadges(rec);
+  if(s.severity){h+='<span class="chip t-bugfix">severity: '+esc(s.severity)+'</span>';}
+  h+='</div>';
+  h+='<h1 style="margin:.6rem 0 0;font-size:1.6rem;line-height:1.25;font-weight:800">'+esc(s.name||rec.name)+'</h1>';
+  h+='<div class="muted" style="display:flex;flex-wrap:wrap;gap:.25rem 1rem;font-size:.82rem;margin-top:.5rem;align-items:center">';
+  h+='<span>id <code class="code">'+esc(s.id||'—')+'</code> <button class="copy-btn" data-copy="'+escAttr(s.id||'')+'">复制</button></span>';
+  h+='<span>v'+esc(s.version==null?'—':s.version)+'</span>';
+  h+='<span>更新 '+esc(s.updated||'—')+'</span>';
+  h+='<span>文件 <code class="code">'+esc(rec.path)+'</code></span>';
+  h+='</div>';
+  return h;
+}
+function issue(kind,text){
+  return '<div class="callout callout-'+kind+'"><div style="display:flex;gap:.5rem"><span>'+(kind==='err'?'✗':'⚠')+'</span><div>'+esc(text)+'</div></div></div>';
+}
+function renderValidation(rec){
+  var n=rec.errors.length,w=rec.warnings.length;
+  if(!n&&!w){return '<div style="margin-top:1rem">'+callout('ok','规则校验通过','<span class="muted">未发现 error / warning。</span>')+'</div>';}
+  var h='<details style="margin-top:1rem"'+(n?' open':'')+'><summary class="val-summary">';
+  h+='<span class="badge '+(n?'badge-err':'badge-warn')+'">'+(n?n+' error':'')+(n&&w?' · ':'')+(w?w+' warning':'')+'</span>';
+  h+='<span class="muted" style="font-size:.82rem">规则校验 G0~G7（与 scripts/validate_spec.py 一致）</span></summary>';
+  h+='<div style="display:grid;gap:.5rem;margin-top:.6rem">';
+  rec.errors.forEach(function(x){h+=issue('err',x);});
+  rec.warnings.forEach(function(x){h+=issue('warn',x);});
+  h+='</div></details>';
+  return h;
+}
+
+/* ================= 生命周期：状态历史 / 验收记录 / 遗留问题 ================= */
+function statusMarkBadges(rec){
+  var s=rec.spec||{};var mk=rec.marks||specMarks(s);var h='';
+  if(s.status==='done'){h+='<span class="badge badge-warn" title="执行者自查完成，还没独立复核">待复核</span>';}
+  if(s.status==='verified'){h+='<span class="badge badge-ok" title="已有独立复核者或用户本人确认">✓ 已验证</span>';}
+  if(mk.unasked){h+='<span class="badge badge-err" title="open_questions 里还有没问过用户的条目；进 ready 前必须先问">'+mk.unasked+' 个问题没问过</span>';}
+  if(mk.staleDays!=null&&mk.staleDays>STALE_DAYS){h+='<span class="badge badge-warn" title="status_log / updated 显示状态很久没更新">'+mk.staleDays+' 天没动</span>';}
+  if((s.status==='done'||s.status==='verified')&&!mk.hasVerification){h+='<span class="badge badge-err">没有验收记录</span>';}
+  return h;
+}
+function accBadge(st){
+  var v=String(st==null?'':st);
+  var cls=v==='pass'?'badge-ok':(v==='fail'?'badge-err':'badge-warn');
+  return '<span class="badge '+cls+'">'+esc(ACCEPT_STATUS[v]||v||'—')+'</span>';
+}
+function statusChip(st){
+  var key=String(st==null?'':st);
+  var meta=STATUS_META[key];
+  var cls=meta?meta.cls:'s-unknown';
+  return '<span class="chip '+cls+'">'+esc(meta?meta.label:key)+'</span>';
+}
+function renderStatusLog(rec){
+  var log=asArr(rec.spec.status_log);
+  if(!log.length){
+    if(rec.spec.status&&rec.spec.status!=='draft'){
+      return section('status_log','状态历史',callout('warn','缺少状态历史（status_log）','看不出这个状态是什么时候、被谁改的。建议跑一次 <code class="code">scripts/spec_status.py</code> 补上。'));
+    }
+    return '';
+  }
+  var rows=log.map(function(e){
+    if(!isObj(e)){return [inline(String(e)),'','','',''];}
+    var toHtml=(e.from?'<span class="muted">'+esc(String(e.from))+'</span> → ':'')+statusChip(e.to);
+    return [esc(e.date==null?'—':String(e.date)),toHtml,esc(e.by==null?'—':String(e.by)),e.version==null?'—':('v'+esc(e.version)),inline(e.note==null?'—':String(e.note))];
+  });
+  return section('status_log','状态历史',table(['日期','转移','谁改的','版本','说明'],rows));
+}
+function renderVerification(rec){
+  var s=rec.spec;
+  var need=(s.status==='done'||s.status==='verified');
+  var v=isObj(s.verification)?s.verification:null;
+  if(!v){
+    if(!need){
+      if(s.status==='blocked'){return '';}
+      return section('verification','验收记录','<p class="muted" style="font-size:.85rem;margin:0">还没收尾，没有验收记录。完成时用 <code class="code">scripts/spec_status.py --to done --result "…" --acceptance "AC#1|pass|证据"</code> 一次写入结论与逐条 AC。</p>');
+    }
+    return section('verification','验收记录',callout('err','此 SPEC 没有验收记录','status='+esc(s.status)+' 必须有 verification：一句话结论 + 逐条 AC 结果与证据。跑 <code class="code">scripts/spec_status.py --to '+esc(s.status)+' --result "…" --acceptance "AC#1|pass|证据"</code> 一次补齐。'));
+  }
+  var h='<div class="card card-pad">';
+  h+=kv('结论',isBlank(v.result)?'<span class="badge badge-err">没有结论（result）</span>':'<div class="prose">'+inline(v.result)+'</div>');
+  var byMap={self:'自查（self）',independent:'独立复核（independent）',user:'用户本人（user）'};
+  var byTxt=byMap[String(v.verified_by==null?'':v.verified_by)]||(isBlank(v.verified_by)?'<span class="badge badge-err">未填写 verified_by</span>':esc(String(v.verified_by)));
+  var who=byTxt+(isBlank(v.verifier)?'':' · '+esc(String(v.verifier)))+(isBlank(v.verified_at)?'':' · '+esc(String(v.verified_at)));
+  h+=kv('验证人',who);
+  var acc=asArr(v.acceptance);
+  if(acc.length){
+    var rows=acc.map(function(a,i){
+      if(!isObj(a)){return [String(i+1),'<div class="prose">'+inline(String(a))+'</div>','',''];}
+      var ast=String(a.status==null?'':a.status);
+      var ev;
+      if(isBlank(a.evidence)){
+        ev=(ast==='pass'||ast==='fail')?'<span class="badge badge-err">缺证据</span>':'<span class="muted">—</span>';
+      }else{
+        ev='<div class="prose">'+inline(a.evidence)+'</div>';
+      }
+      if(ast==='not_run'&&!unverifiedMentions(v,a.criterion)){ev+=' <span class="badge badge-warn">没进 unverified</span>';}
+      return [String(i+1),'<div class="prose">'+inline(a.criterion==null?'—':a.criterion)+'</div>',accBadge(a.status),ev];
+    });
+    h+=kv('逐条 AC 结果',table(['#','验收标准','结果','证据'],rows));
+    var acN=asArr(s.acceptance_criteria).length;
+    if(acc.length<acN){
+      h+=kv('对照完整度','<span class="badge badge-err">只对照了 '+acc.length+' / '+acN+' 条验收标准</span> <span class="muted">逐条对照才算数</span>');
+    }else if(acc.length>acN){
+      h+=kv('对照完整度','<span class="badge badge-warn">验收记录 '+acc.length+' 条 > 验收标准 '+acN+' 条</span> <span class="muted">可能 AC 漏写了</span>');
+    }
+  }else{
+    h+=kv('逐条 AC 结果','<span class="badge badge-err">没有逐条结果（acceptance）</span>');
+  }
+  if(asArr(v.commands).length){h+=kv('跑过的命令',renderBullets(v.commands));}
+  if(asArr(v.artifacts).length){h+=kv('产出物',renderBullets(v.artifacts));}
+  h+='</div>';
+  var extra='';
+  if(asArr(v.unverified).length){extra+=callout('warn','明确没验的部分',renderBullets(v.unverified));}
+  if(s.status==='done'){extra+=callout('warn','待独立复核','这是执行者自查（done）。要有独立复核者或用户本人确认后才能升到 <b>verified</b>：<code class="code">scripts/spec_status.py --to verified --verify-by independent --verifier &lt;谁&gt;</code>。');}
+  if(extra){h+='<div style="margin-top:.6rem;display:grid;gap:.6rem">'+extra+'</div>';}
+  return section('verification','验收记录',h);
+}
+function renderFollowUps(rec){
+  var items=asArr(rec.spec.follow_ups);
+  var inner=items.length
+    ?callout('warn',items.length+' 条遗留问题（写清优先级与触发条件）','<ul class="bullets">'+items.map(function(x){return '<li>'+formatScalar(x)+'</li>';}).join('')+'</ul>')
+    :'<p class="muted" style="font-size:.85rem;margin:0">（无遗留问题）</p>';
+  return section('follow_ups','遗留问题',inner);
+}
+function renderLifecycle(rec){
+  var s=rec.spec;var h='';
+  if(s.status==='blocked'){
+    h+=callout('err','受阻原因',isBlank(s.blocked_reason)?'<span>status=blocked 但没写 blocked_reason</span>':'<div class="prose">'+inline(s.blocked_reason)+'</div>');
+  }
+  h+=renderStatusLog(rec);
+  h+=renderVerification(rec);
+  h+=renderFollowUps(rec);
+  return h;
+}
+function maybeMissing(x,label){
+  if(isBlank(x)){return '<span class="badge badge-err">缺 '+esc(label)+'</span>';}
+  return '<div class="prose">'+inline(x)+'</div>';
+}
+function renderBlockingQuestions(k,title,v){
+  var items=asArr(v);
+  if(!items.length){return section(k,title,'<p class="muted" style="font-size:.85rem;margin:0">（空）</p>');}
+  var h='<div style="display:grid;gap:.5rem">'+items.map(function(x,i){
+    if(!isObj(x)){
+      return '<div class="callout callout-err"><div style="display:flex;gap:.5rem"><span>⛔</span><div><div class="prose"><span class="badge badge-err">未答复</span> '+inline(String(x))+'</div><div class="muted" style="font-size:.78rem">纯字符串写法等于"还没问过用户"；请改成 {q, answered, asked_at, answer}</div></div></div></div>';
+    }
+    var ok=(x.answered===true);
+    var badge=ok
+      ?(isBlank(x.answer)?'<span class="badge badge-err">已答复但没写用户原话</span>':'<span class="badge badge-ok">已答复</span>')
+      :'<span class="badge badge-err">未答复（不能进 ready）</span>';
+    var body='<div class="prose">'+badge+' 第 '+(i+1)+' 条：'+inline(x.q==null?'—':x.q)+'</div>';
+    if(!isBlank(x.asked_at)){body+='<div class="muted" style="font-size:.78rem">提问日期：'+esc(String(x.asked_at))+'</div>';}
+    if(!isBlank(x.answer)){body+='<div class="prose" style="font-size:.84rem;margin-top:.2rem">用户答复：'+inline(x.answer)+'</div>';}
+    else if(ok){body+='<div class="muted" style="font-size:.78rem">answer 是空的：把用户原话填进去，否则等于空口白话。</div>';}
+    return '<div class="callout '+(ok?'callout-ok':'callout-err')+'"><div style="display:flex;gap:.5rem"><span>'+(ok?'✓':'⛔')+'</span><div>'+body+'</div></div></div>';
+  }).join('')+'</div>';
+  if(items.some(function(x){return isObj(x)&&x.answered===true;})){
+    h+='<div class="muted" style="font-size:.78rem;margin-top:.4rem">已答复的阻塞问题，结论要落进 <code class="code">context</code> / 验收标准 / <code class="code">follow_ups</code>，不要只留在问题列表里。</div>';
+  }
+  return section(k,title,h);
+}
+function renderOpenQuestions(k,title,v){
+  var items=asArr(v);
+  if(!items.length){return section(k,title,'<p class="muted" style="font-size:.85rem;margin:0">（空）</p>');}
+  var norm=normOpenQuestions(v);
+  var groups={open:[],assumed:[],answered:[],invalid:[]};
+  norm.forEach(function(q){(groups[q.status]||groups.invalid).push(q);});
+  var h='';
+  if(groups.open.length){
+    h+='<div style="margin-bottom:.6rem">'+callout('err',groups.open.length+' 个问题还没问过用户','进入 <b>ready</b> 之前必须用提问工具真的问出来，把答复写回 <code class="code">answer</code>；没问之前只能保持 <code class="code">status: draft</code>。')+'</div>';
+  }
+  if(groups.assumed.length){
+    h+='<div style="margin-bottom:.6rem">'+callout('warn','交付时要把这些假设念给用户听','下面 '+groups.assumed.length+' 条是"没等答复、按假设先做"的：交付/验收时逐条念给用户，并按 <code class="code">confirm_by</code> 的时间点回头确认。')+'</div>';
+  }
+  if(groups.invalid.length){
+    h+='<div style="margin-bottom:.6rem">'+callout('err',groups.invalid.length+' 条问题的 status 取值非法','status 只能是 <code class="code">open</code>（还没问过）、<code class="code">answered</code>（问过了）、<code class="code">assumed</code>（知情假设）。')+'</div>';
+  }
+  h+='<div style="display:grid;gap:.5rem">';
+  groups.open.forEach(function(q){
+    h+='<div class="callout callout-err"><div style="display:flex;gap:.5rem"><span>?</span><div><div class="prose"><span class="badge badge-err">没问过</span> '+inline(q.q)+'</div><div class="muted" style="font-size:.78rem">这是"问都没问过"，不是"问过了没答"；用提问工具发给用户后把答复填进 answer。</div></div></div></div>';
+  });
+  groups.invalid.forEach(function(q){
+    h+='<div class="callout callout-err"><div style="display:flex;gap:.5rem"><span>!</span><div><div class="prose"><span class="badge badge-err">status 非法</span> '+inline(q.q)+' <code class="code">status: '+esc(q.status)+'</code></div><div class="muted" style="font-size:.78rem">改成 open / answered / assumed 之一；写错会让"问没问过"判断失效。</div></div></div></div>';
+  });
+  groups.assumed.forEach(function(q){
+    var o=q.obj||{};
+    var body='<div class="prose"><span class="badge badge-warn">假设推进</span> '+inline(q.q)+'</div>';
+    body+='<div style="margin-top:.25rem;font-size:.84rem"><b>我按这个假设推进：</b>'+maybeMissing(o.assumption,'assumption')+'</div>';
+    body+='<div style="font-size:.84rem"><b>假设错了会：</b>'+maybeMissing(o.if_wrong,'if_wrong')+'</div>';
+    body+='<div style="font-size:.84rem"><b>最迟回头确认：</b>'+maybeMissing(o.confirm_by,'confirm_by')+'</div>';
+    h+='<div class="callout callout-warn"><div style="display:flex;gap:.5rem"><span>⚠</span><div>'+body+'</div></div></div>';
+  });
+  groups.answered.forEach(function(q){
+    var o=q.obj||{};
+    var noAnswer=isBlank(o.answer);
+    var body='<div class="prose">'+(noAnswer?'<span class="badge badge-err">已问过但没写用户原话</span>':'<span class="badge badge-ok">已问过</span>')+' '+inline(q.q)+'</div>';
+    if(!noAnswer){body+='<div class="prose" style="font-size:.84rem;margin-top:.2rem">用户答复：'+inline(o.answer)+'</div>';}
+    else{body+='<div class="muted" style="font-size:.78rem">answer 是空的：把用户原话填进去（用户没答就保持 open），不能只写个 answered。</div>';}
+    if(!isBlank(o.asked_at)){body+='<div class="muted" style="font-size:.78rem">提问日期：'+esc(String(o.asked_at))+'</div>';}
+    h+='<div class="callout '+(noAnswer?'callout-err':'callout-ok')+'"><div style="display:flex;gap:.5rem"><span>'+(noAnswer?'!':'✓')+'</span><div>'+body+'</div></div></div>';
+  });
+  h+='</div>';
+  return section(k,title,h);
+}
+
+
+function formatScalar(x){
+  if(isBlank(x)){return '<span class="muted">—</span>';}
+  if(x===true){return '<span class="badge badge-ok">是</span>';}
+  if(x===false){return '<span class="badge badge-warn">否</span>';}
+  if(isObj(x)||isArr(x)){return genericInline(x);}
+  return inline(String(x));
+}
+function genericInline(v){
+  if(isBlank(v)){return '<span class="muted">—</span>';}
+  if(isArr(v)){
+    if(!v.length){return '<span class="muted">—</span>';}
+    if(v.every(function(x){return !isObj(x)&&!isArr(x);})){return inline(v.join('、'));}
+    return '<code class="code">'+esc(JSON.stringify(v))+'</code>';
+  }
+  if(isObj(v)){return '<code class="code">'+esc(JSON.stringify(v))+'</code>';}
+  return inline(String(v));
+}
+function renderBullets(v){
+  var items=asArr(v);
+  if(!items.length){return '<p class="muted" style="font-size:.85rem;margin:0">（空）</p>';}
+  return '<ul class="bullets">'+items.map(function(x){return '<li>'+formatScalar(x)+'</li>';}).join('')+'</ul>';
+}
+function renderLinks(v){
+  var items=asArr(v);
+  if(!items.length){return '<p class="muted" style="font-size:.85rem;margin:0">（空）</p>';}
+  return '<ul class="bullets">'+items.map(function(x){
+    var s=String(x);
+    if(/^https?:\/\//.test(s)){return '<li><a href="'+escAttr(s)+'" target="_blank" rel="noreferrer">'+esc(s)+'</a></li>';}
+    return '<li>'+inline(s)+'</li>';
+  }).join('')+'</ul>';
+}
+function renderSteps(v){
+  var items=asArr(v);
+  if(!items.length){return '<p class="muted" style="font-size:.85rem;margin:0">（空）</p>';}
+  return '<ol class="steps">'+items.map(function(x){
+    if(isObj(x)){return '<li>'+genericInline(x)+'</li>';}
+    return '<li>'+inline(String(x))+'</li>';
+  }).join('')+'</ol>';
+}
+function renderInputs(v){
+  var rows=asArr(v).map(function(it){
+    if(!isObj(it)){return [inline(String(it)),'','','']; }
+    var req=it.required===true?'<span class="badge badge-err">必填</span>':(it.required===false?'<span class="badge badge-ok">可选</span>':'—');
+    return ['<b>'+esc(it.name||'—')+'</b>',inline(it.description||'—'),'<code class="code">'+esc(it.source||'—')+'</code>',req];
+  });
+  return table(['名称','说明','来源','必填'],rows);
+}
+function renderOutputs(v){
+  if(!isObj(v)){return '<div class="card card-pad">'+genericInline(v)+'</div>';}
+  var h='<div class="card card-pad">';
+  if(v.format){h+=kv('格式','<code class="code">'+esc(v.format)+'</code>');}
+  if(v.path){h+=kv('产出位置',inline(v.path));}
+  if(v.schema){
+    var sc=String(v.schema);
+    if(sc.indexOf('\n')>=0){h+=kv('Schema','<pre class="codeblock" style="margin-top:.2rem">'+esc(sc)+'</pre>');}
+    else{h+=kv('Schema','<code class="code">'+esc(sc)+'</code>');}
+  }
+  Object.keys(v).forEach(function(k){if(['format','path','schema'].indexOf(k)<0){h+=kv(k,formatScalar(v[k]));}});
+  h+='</div>';
+  return h;
+}
+function renderKVGrid(v){
+  if(isBlank(v)){return '<p class="muted" style="font-size:.85rem;margin:0">（空）</p>';}
+  if(!isObj(v)){return '<div class="card card-pad prose">'+inline(String(v))+'</div>';}
+  var h='<div class="card card-pad">';
+  Object.keys(v).forEach(function(k){h+=kv(k,formatScalar(v[k]));});
+  h+='</div>';
+  return h;
+}
+function renderReproduction(v){
+  if(!isObj(v)){return '<div class="card card-pad prose">'+inline(String(v))+'</div>';}
+  var h='';
+  if(asArr(v.steps).length){h+='<div class="card card-pad" style="margin-bottom:.75rem"><div class="field-label">复现步骤</div>'+renderSteps(v.steps)+'</div>';}
+  h+='<div style="display:grid;gap:.65rem" class="grid-2">';
+  h+=callout('ok','期望行为','<div class="prose">'+inline(v.expected||'—')+'</div>');
+  h+=callout('err','实际行为','<div class="prose">'+inline(v.actual||'—')+'</div>');
+  h+='</div>';
+  if(v.frequency){h+='<div class="muted" style="font-size:.82rem;margin-top:.5rem">发生频率：'+esc(v.frequency)+'</div>';}
+  return h;
+}
+function renderEvidence(v){
+  var rows=asArr(v).map(function(it){
+    if(!isObj(it)){return ['—',inline(String(it)),'—'];}
+    return ['<span class="badge t-unknown">'+esc(it.type||'—')+'</span>','<div class="prose">'+inline(it.detail||'—')+'</div>','<code class="code">'+esc(it.location||'—')+'</code>'];
+  });
+  return table(['类型','细节','位置'],rows);
+}
+function cardList(title,items,kind){
+  if(!items.length){return callout(kind,title,'<span class="muted">（空）</span>');}
+  return callout(kind,title,'<ul class="bullets">'+items.map(function(x){return '<li>'+formatScalar(x)+'</li>';}).join('')+'</ul>');
+}
+function renderScope(v){
+  if(!isObj(v)){return '<div class="card card-pad">'+genericInline(v)+'</div>';}
+  return '<div class="grid-2" style="display:grid;gap:.65rem">'+cardList('受影响',asArr(v.affected),'warn')+cardList('明确不受影响（边界）',asArr(v.not_affected),'ok')+'</div>';
+}
+function renderRootCause(v){
+  if(!isObj(v)){return '<div class="card card-pad">'+genericInline(v)+'</div>';}
+  var h='<div class="card card-pad">';
+  h+=kv('根因假设',inline(v.hypothesis||'—'));
+  h+=kv('支持证据',inline(v.evidence||'—'));
+  h+=kv('是否确认',v.confirmed===true?'<span class="badge badge-ok">已确认</span>':(v.confirmed===false?'<span class="badge badge-warn">未确认</span>':'—'));
+  h+='</div>';
+  return h;
+}
+function renderFix(v){
+  if(!isObj(v)){return '<div class="card card-pad">'+genericInline(v)+'</div>';}
+  var h='<div class="card card-pad">';
+  h+=kv('修复方案','<div class="prose">'+inline(v.approach||'—')+'</div>');
+  if(asArr(v.files).length){h+=kv('涉及文件','<ul class="bullets">'+asArr(v.files).map(function(f){return '<li><code class="code">'+esc(String(f))+'</code></li>';}).join('')+'</ul>');}
+  if(asArr(v.constraints).length){h+=kv('约束','<ul class="bullets">'+asArr(v.constraints).map(function(f){return '<li>'+inline(String(f))+'</li>';}).join('')+'</ul>');}
+  if(asArr(v.alternatives_considered).length){h+=kv('备选方案','<ul class="bullets">'+asArr(v.alternatives_considered).map(function(f){return '<li>'+inline(String(f))+'</li>';}).join('')+'</ul>');}
+  h+='</div>';
+  return h;
+}
+function levelBadge(x){
+  var v=String(x||'').toLowerCase();
+  var cls=v==='high'||v==='critical'?'badge-err':(v==='medium'?'badge-warn':(v==='low'?'badge-ok':'badge-ok'));
+  return '<span class="badge '+cls+'">'+esc(x==null?'—':x)+'</span>';
+}
+function renderRisks(v){
+  var rows=asArr(v).map(function(it){
+    if(!isObj(it)){return [inline(String(it)),'','','']; }
+    return ['<b>'+esc(it.risk||'—')+'</b>',levelBadge(it.likelihood),levelBadge(it.impact),'<div class="prose">'+inline(it.mitigation||'—')+'</div>'];
+  });
+  return table(['风险','可能性','影响','缓解措施'],rows);
+}
+function renderRollback(v){
+  if(isBlank(v)){return '<p class="muted" style="font-size:.85rem;margin:0">（空）</p>';}
+  if(!isObj(v)){return '<div class="card card-pad prose">'+inline(String(v))+'</div>';}
+  var h='<div class="card card-pad">';
+  if(v.trigger){h+=kv('触发条件',inline(v.trigger));}
+  if(asArr(v.steps).length){h+=kv('回滚步骤',renderSteps(v.steps));}
+  Object.keys(v).forEach(function(k){if(['trigger','steps'].indexOf(k)<0){h+=kv(k,formatScalar(v[k]));}});
+  h+='</div>';
+  return h;
+}
+function renderMonitoring(v){
+  var rows=asArr(v).map(function(it){
+    if(!isObj(it)){return [inline(String(it)),'','','']; }
+    return ['<b>'+esc(it.metric||'—')+'</b>','<code class="code">'+esc(it.threshold||'—')+'</code>',esc(it.window||'—'),'<div class="prose">'+inline(it.action||'—')+'</div>'];
+  });
+  return table(['指标','阈值','观察窗口','异常动作'],rows);
+}
+function renderFailureHandling(v){
+  var rows=asArr(v).map(function(it){
+    if(!isObj(it)){return [inline(String(it)),'']; }
+    return ['<div class="prose">'+inline(it.scenario||'—')+'</div>','<div class="prose">'+inline(it.handling||'—')+'</div>'];
+  });
+  return table(['场景','处理方式'],rows);
+}
+function renderExamples(v){
+  var items=asArr(v);
+  if(!items.length){return '<p class="muted" style="font-size:.85rem;margin:0">（空）</p>';}
+  return '<div style="display:grid;gap:.65rem">'+items.map(function(ex){
+    if(!isObj(ex)){return '<div class="card card-pad prose">'+inline(String(ex))+'</div>';}
+    return '<div class="card card-pad"><div class="grid-2" style="display:grid;gap:.8rem">'
+      +'<div><div class="field-label">输入</div><div class="prose">'+inline(ex.input||'—')+'</div></div>'
+      +'<div><div class="field-label">输出</div><div class="prose">'+inline(ex.output||'—')+'</div></div>'
+      +'</div></div>';
+  }).join('')+'</div>';
+}
+function renderChecklist(field,v,rec){
+  var items=asArr(v);
+  if(!items.length){return '<p class="muted" style="font-size:.85rem;margin:0">（空）</p>';}
+  var key=rec.id||rec.path;
+  var store=loadChecks(key+'::'+field);
+  var h='<div class="checklist" data-check-key="'+escAttr(key)+'" data-check-field="'+escAttr(field)+'">';
+  var done=0;
+  items.forEach(function(item,i){
+    var text=typeof item==='string'?item:JSON.stringify(item);
+    var weak=field==='acceptance_criteria'&&weakItem(text);
+    var checked=!!store[i];
+    if(checked){done++;}
+    h+='<label class="check-item'+(weak?' weak':'')+'">';
+    h+='<input type="checkbox" class="chk" data-idx="'+i+'"'+(checked?' checked':'')+'>';
+    h+='<span class="check-num">'+(i+1)+'</span>';
+    h+='<span class="check-text'+(checked?' done':'')+'">'+inline(text)+(weak?'<span class="tag-warn" title="疑似不可验证">弱</span>':'')+'</span>';
+    h+='</label>';
+  });
+  h+='</div><div class="check-progress"><span class="check-count">'+done+' / '+items.length+'</span> 已完成</div>';
+  return h;
+}
+function renderQuestions(k,title,v,kind){
+  var items=asArr(v);
+  var cls=kind==='blocking_questions'?'callout-err':(kind==='open_questions'?'callout-warn':'callout');
+  var mark=kind==='blocking_questions'?'⛔':(kind==='assumptions'?'·':'?');
+  if(!items.length){return section(k,title,'<p class="muted" style="font-size:.85rem;margin:0">（空）</p>');}
+  var h='<div style="display:grid;gap:.5rem">'+items.map(function(x){
+    return '<div class="callout '+cls+'"><div style="display:flex;gap:.5rem"><span>'+mark+'</span><div class="prose">'+inline(String(x))+'</div></div></div>';
+  }).join('')+'</div>';
+  return section(k,title,h);
+}
+function renderField(k,v,s,rec){
+  var title=LABELS[k]||k;
+  switch(k){
+    case 'goal':case 'context':case 'background':case 'symptom':case 'question':case 'current_state':case 'motivation':
+      return section(k,title,'<div class="card card-pad prose">'+inline(v)+'</div>');
+    case 'assumptions':return renderQuestions(k,title,v,'assumptions');
+    case 'blocking_questions':return renderBlockingQuestions(k,title,v);
+    case 'open_questions':return renderOpenQuestions(k,title,v);
+    case 'inputs':return section(k,title,renderInputs(v));
+    case 'outputs':return section(k,title,renderOutputs(v));
+    case 'constraints':case 'out_of_scope':case 'tools':case 'behavior_contract':case 'changes':case 'hypotheses':case 'methods':case 'deliverables':case 'decision_criteria':
+      return section(k,title,'<div class="card card-pad">'+renderBullets(v)+'</div>');
+    case 'related':return section(k,title,'<div class="card card-pad">'+renderLinks(v)+'</div>');
+    case 'steps':return section(k,title,'<div class="card card-pad">'+renderSteps(v)+'</div>');
+    case 'acceptance_criteria':return section(k,title,renderChecklist(k,v,rec)
+      +'<div class="muted" style="font-size:.74rem;margin-top:.5rem">打勾只存在浏览器本地（localStorage），<b>不会写回 SPEC 文件</b>；要留下验收结论请跑 <code class="code">scripts/spec_status.py --to done --acceptance "AC#1|pass|证据"</code>。</div>');
+    case 'regression_tests':return section(k,title,renderChecklist(k,v,rec));
+    case 'failure_handling':return section(k,title,renderFailureHandling(v));
+    case 'examples':return section(k,title,renderExamples(v));
+    case 'environment':return section(k,title,renderKVGrid(v));
+    case 'reproduction':return section(k,title,renderReproduction(v));
+    case 'evidence':return section(k,title,renderEvidence(v));
+    case 'scope':return section(k,title,renderScope(v));
+    case 'root_cause':return section(k,title,renderRootCause(v));
+    case 'fix':return section(k,title,renderFix(v));
+    case 'risks':return section(k,title,renderRisks(v));
+    case 'rollback':return section(k,title,renderRollback(v));
+    case 'monitoring':return section(k,title,renderMonitoring(v));
+    case 'target':return section(k,title,renderKVGrid(v));
+    case 'timebox':return section(k,title,'<span class="chip t-unknown">'+esc(v)+'</span>');
+    default:return section(k,title,generic(v));
+  }
+}
+function generic(v){
+  if(isBlank(v)){return '<p class="muted" style="font-size:.85rem;margin:0">（空）</p>';}
+  if(isArr(v)){
+    if(v.every(function(x){return !isObj(x)&&!isArr(x);})){return '<div class="card card-pad">'+renderBullets(v)+'</div>';}
+    var keys=[];
+    v.forEach(function(x){if(isObj(x)){Object.keys(x).forEach(function(k){if(keys.indexOf(k)<0){keys.push(k);}});}});
+    return table(keys,v.map(function(x){return keys.map(function(k){return formatScalar(x&&x[k]);});}));
+  }
+  if(isObj(v)){
+    var h='<div class="card card-pad">';
+    Object.keys(v).forEach(function(k){h+=kv(k,formatScalar(v[k]));});
+    return h+'</div>';
+  }
+  return '<div class="card card-pad prose">'+inline(String(v))+'</div>';
+}
+function renderBody(rec){
+  var s=rec.spec;
+  var order=BODY_ORDER[rec.type]||Object.keys(s);
+  var seen={};var h='';
+  order.forEach(function(k){if(!(k in s)){return;}seen[k]=true;h+=renderField(k,s[k],s,rec);});
+  var extras=Object.keys(s).filter(function(k){return !seen[k]&&META_KEYS.indexOf(k)<0;});
+  extras.forEach(function(k){h+=renderField(k,s[k],s,rec);});
+  return h;
+}
+function renderRaw(rec){
+  return '<details class="raw"><summary>原始 YAML · '+esc(rec.path)+'</summary><div style="position:relative;margin-top:.5rem"><button class="copy-btn" style="position:absolute;top:.5rem;right:.5rem" data-copy-src="raw">复制</button><pre class="codeblock">'+esc(rec.raw)+'</pre></div></details>';
+}
+function renderParseError(rec){
+  return '<div class="card card-pad"><div class="callout callout-err"><div class="callout-title">无法解析为 SPEC</div><div>'+esc(rec.parseError)+'</div></div>'
+    +'<details class="raw" open><summary>文件内容</summary><pre class="codeblock" style="margin-top:.5rem">'+esc(rec.raw)+'</pre></details></div>';
+}
+function renderDetail(rec){
+  var el=$('detail'),w=$('welcome');
+  var h='<div class="wrap">';
+  if(rec.parseError){h+=renderParseError(rec);}
+  else{h+=renderHeader(rec);h+=renderValidation(rec);h+=renderLifecycle(rec);h+=renderBody(rec);h+=renderRaw(rec);}
+  h+='</div>';
+  el.innerHTML=h;el.hidden=false;w.hidden=true;
+}
+
+/* ================= 清单持久化 ================= */
+function loadChecks(k){try{var m=JSON.parse(localStorage.getItem('specview.checks')||'{}');return m[k]||{};}catch(e){return {};}}
+function saveChecks(k,v){try{var m=JSON.parse(localStorage.getItem('specview.checks')||'{}');m[k]=v;localStorage.setItem('specview.checks',JSON.stringify(m));}catch(e){}}
+function updateCheckProgress(box){
+  var all=box.querySelectorAll('.chk').length;
+  var done=box.querySelectorAll('.chk:checked').length;
+  var next=box.nextElementSibling;
+  if(next){var c=next.querySelector('.check-count');if(c){c.textContent=done+' / '+all;}}
+}
+
+/* ================= 复制 / toast ================= */
+var toastTimer=null;
+function toast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},1700);}
+function fallbackCopy(t){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('已复制');}catch(e){toast('复制失败');}document.body.removeChild(ta);}
+function copyText(t){if(!t){toast('没有可复制的内容');return;}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast('已复制');},function(){fallbackCopy(t);});}else{fallbackCopy(t);}}
+
+/* ================= 加载 ---------- */
+function showWelcome(){$('welcome').hidden=false;$('detail').hidden=true;}
+function showLoadError(msg){$('loadError').innerHTML=msg?callout('warn','提示',esc(msg)):'';}
+function loadFromHandle(handle){
+  var entries=[];
+  var it=handle.values();
+  function step(res){return it.next().then(function(r){
+    if(r.done){return Promise.resolve();}
+    var entry=r.value;
+    if(entry.kind!=='file'||!/\.ya?ml$/i.test(entry.name)){return step();}
+    return entry.getFile().then(function(f){return f.text();}).then(function(text){entries.push({name:entry.name,path:entry.name,text:text});return step();});
+  });}
+  return step().then(function(){
+    if(!entries.length){ingest([]);showWelcome();showLoadError('该目录下没有 .yaml / .yml 文件。');return;}
+    ingest(entries);
+  });
+}
+function loadFromInputFiles(files){
+  var list=Array.prototype.slice.call(files||[]).filter(function(f){return /\.ya?ml$/i.test(f.name);});
+  if(!list.length){return Promise.resolve([]);}
+  return Promise.all(list.map(function(f){
+    return f.text().then(function(text){return {name:f.name,path:f.webkitRelativePath||f.name,text:text};},function(err){return {name:f.name,path:f.name,text:'',error:String(err)};});
+  }));
+}
+function walkEntry(entry,path,out){
+  if(entry.isFile){
+    if(!/\.ya?ml$/i.test(entry.name)){return Promise.resolve();}
+    return new Promise(function(res,rej){entry.file(res,rej);}).then(function(file){return file.text();}).then(function(text){out.push({name:entry.name,path:path,text:text});});
+  }
+  if(entry.isDirectory){
+    var reader=entry.createReader();
+    var all=[];
+    function readBatch(){return new Promise(function(res,rej){reader.readEntries(res,rej);}).then(function(batch){if(!batch.length){return; }all=all.concat(batch);return readBatch();});}
+    return readBatch().then(function(){
+      var chain=Promise.resolve();
+      all.forEach(function(child){chain=chain.then(function(){return walkEntry(child,path+'/'+child.name,out);});});
+      return chain;
+    });
+  }
+  return Promise.resolve();
+}
+function idbOpen(){
+  return new Promise(function(res,rej){
+    var r=indexedDB.open('spec-viewer',1);
+    r.onupgradeneeded=function(){r.result.createObjectStore('kv');};
+    r.onsuccess=function(){res(r.result);};
+    r.onerror=function(){rej(r.error);};
+  });
+}
+function idbGet(k){return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction('kv','readonly');var q=tx.objectStore('kv').get(k);q.onsuccess=function(){res(q.result);};q.onerror=function(){rej(q.error);};});}).catch(function(){return undefined;});}
+function idbSet(k,v){return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};});}).catch(function(){});}
+
+function pickDirectory(){
+  if(location.protocol!=='file:'&&window.showDirectoryPicker){
+    window.showDirectoryPicker({id:'specs-viewer',mode:'read'}).then(function(handle){
+      idbSet('dirHandle',handle);
+      return loadFromHandle(handle);
+    }).catch(function(err){
+      if(err&&err.name==='AbortError'){return;}
+      $('dirInput').click();
+    });
+    return;
+  }
+  $('dirInput').click();
+}
+function discoverHttp(){
+  return fetch('./',{headers:{'Accept':'text/html'},cache:'no-store'}).then(function(res){
+    if(!res.ok){return false;}
+    var ct=res.headers.get('content-type')||'';
+    if(ct.indexOf('text/html')<0){return false;}
+    return res.text();
+  }).then(function(html){
+    if(!html){return false;}
+    if(html.indexOf('id="spec-viewer-app"')>=0){return false;}
+    var doc=new DOMParser().parseFromString(html,'text/html');
+    var links=doc.querySelectorAll('a[href]');
+    var files=[];var seen={};
+    for(var i=0;i<links.length;i++){
+      var href=links[i].getAttribute('href')||'';
+      if(!/\.ya?ml($|[?#])/i.test(href)){continue;}
+      var clean=href.split('#')[0].split('?')[0];
+      try{clean=decodeURIComponent(clean);}catch(e){}
+      if(seen[clean]){continue;}seen[clean]=true;files.push(clean);
+    }
+    if(!files.length){return false;}
+    return Promise.all(files.map(function(u){
+      return fetch(u,{cache:'no-store'}).then(function(r){
+        if(!r.ok){throw new Error('HTTP '+r.status);}
+        return r.text().then(function(text){return {name:u.split('/').pop(),path:u,text:text};});
+      }).catch(function(err){return {name:u.split('/').pop(),path:u,text:'',error:String(err)};});
+    })).then(function(entries){ingest(entries);return true;});
+  }).catch(function(){return false;});
+}
+function boot(){
+  initTheme();
+  window.addEventListener('hashchange',function(){
+    var h='';try{h=decodeURIComponent(location.hash.replace(/^#/,''));}catch(e){}
+    if(!h){return;}
+    for(var i=0;i<state.specs.length;i++){var r=state.specs[i];if(r.id===h||r.path===h||r.name===h){select(r.path);return;}}
+  });
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    if(!t||!t.closest){return;}
+    var copy=t.closest('[data-copy],[data-copy-src]');
+    if(copy){
+      if(copy.getAttribute('data-copy-src')==='raw'&&state.current){copyText(state.current.raw);}
+      else{copyText(copy.getAttribute('data-copy')||'');}
+      return;
+    }
+    var item=t.closest('.side-item');
+    if(item){select(item.getAttribute('data-path'));return;}
+    var typeChip=t.closest('[data-type]');
+    if(typeChip){state.type=typeChip.getAttribute('data-type');renderFilters();renderList();return;}
+    if(t.closest('#pickBtn')||t.closest('#pickBtn2')||t.closest('#dropzone')&&t.closest('button')){pickDirectory();return;}
+    if(t.closest('#reloadBtn')){
+      if(location.protocol==='http:'||location.protocol==='https:'){discoverHttp().then(function(ok){if(!ok){showLoadError('未自动发现 YAML，请选择文件夹。');}});}
+      else{idbGet('dirHandle').then(function(h){if(h&&h.queryPermission){h.queryPermission({mode:'read'}).then(function(p){if(p==='granted'){loadFromHandle(h);}else{pickDirectory();}});}else{pickDirectory();}});}
+      return;
+    }
+    if(t.closest('#themeBtn')){toggleTheme();return;}
+  });
+  document.addEventListener('change',function(e){
+    var t=e.target;
+    if(!t){return;}
+    if(t.classList&&t.classList.contains('chk')){
+      var box=t.closest('.checklist');
+      if(box){
+        var key=box.getAttribute('data-check-key'),field=box.getAttribute('data-check-field');
+        var idx=parseInt(t.getAttribute('data-idx'),10);
+        var store=loadChecks(key+'::'+field);store[idx]=t.checked;saveChecks(key+'::'+field,store);
+        var txt=t.parentElement.querySelector('.check-text');
+        if(txt){txt.classList.toggle('done',t.checked);}
+        updateCheckProgress(box);
+      }
+      return;
+    }
+    if(t.id==='hideNon'){state.hideNon=t.checked;renderFilters();renderList();return;}
+    if(t.id==='statusSel'){state.status=t.value;renderList();return;}
+  });
+  $('search').addEventListener('input',function(e){state.q=e.target.value;renderList();});
+  $('dirInput').addEventListener('change',function(){loadFromInputFiles($('dirInput').files).then(function(entries){if(!entries.length){showLoadError('所选目录下没有 .yaml / .yml 文件。');return;}ingest(entries);$('dirInput').value='';});});
+  var dz=$('dropzone');
+  function stop(e){e.preventDefault();e.stopPropagation();}
+  ['dragenter','dragover'].forEach(function(ev){document.addEventListener(ev,function(e){stop(e);if(dz){dz.classList.add('drag');}});});
+  ['dragleave','drop'].forEach(function(ev){document.addEventListener(ev,function(e){stop(e);if(ev==='dragleave'&&e.relatedTarget){return;}if(dz){dz.classList.remove('drag');}});});
+  document.addEventListener('drop',function(e){
+    var dt=e.dataTransfer;if(!dt){return;}
+    var items=dt.items;var roots=[];
+    if(items){for(var i=0;i<items.length;i++){var it=items[i];if(it.kind==='file'&&it.webkitGetAsEntry){var en=it.webkitGetAsEntry();if(en){roots.push(en);}}}}
+    if(roots.length){
+      var out=[];var chain=Promise.resolve();
+      roots.forEach(function(r){chain=chain.then(function(){return walkEntry(r,r.name,out);});});
+      chain.then(function(){if(!out.length){showLoadError('拖入的内容里没有 .yaml / .yml 文件。');return;}ingest(out);});
+    }else if(dt.files&&dt.files.length){
+      loadFromInputFiles(dt.files).then(function(entries){if(!entries.length){showLoadError('拖入的内容里没有 .yaml / .yml 文件。');return;}ingest(entries);});
+    }
+  });
+
+  if(location.protocol==='http:'||location.protocol==='https:'){
+    discoverHttp().then(function(ok){
+      if(ok){return;}
+      showWelcome();showLoadError('未能自动发现 YAML（服务器可能未开启目录列表）。可点“选择 specs 文件夹”，或按上面的命令用 http.server 打开。');
+    });
+    return;
+  }
+  idbGet('dirHandle').then(function(h){
+    if(!h||!h.queryPermission){showWelcome();return;}
+    h.queryPermission({mode:'read'}).then(function(p){
+      if(p==='granted'){loadFromHandle(h);}
+      else{showWelcome();showLoadError('浏览器需要重新授权后才能读取上次的 specs 目录，请点“选择 specs 文件夹”。');}
+    }).catch(function(){showWelcome();});
+  }).catch(function(){showWelcome();});
+}
+
+/* ================= 主题 ================= */
+function initTheme(){
+  var saved=null;try{saved=localStorage.getItem('specview.theme');}catch(e){}
+  state.theme=saved||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');
+  document.documentElement.classList.toggle('dark',state.theme==='dark');
+}
+function toggleTheme(){
+  state.theme=state.theme==='dark'?'light':'dark';
+  try{localStorage.setItem('specview.theme',state.theme);}catch(e){}
+  document.documentElement.classList.toggle('dark',state.theme==='dark');
+}
+
+boot();
+})();
+</script>
+</body>
+</html>

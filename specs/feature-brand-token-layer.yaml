@@ -1,0 +1,187 @@
+spec:
+  type: feature
+  name: 品牌色可替换（品牌层 + 算法派生 + 校验门禁）
+  id: feature-brand-token-layer
+  version: 4
+  updated: "2026-09-24"
+  status: verified
+  blocked_reason: ""
+  status_log:
+    - date: "2026-09-24"
+      from: ready
+      to: in_progress
+      by: lead
+      version: 2
+      note: "契约冻结：品牌层 12 令牌 + 算法 + 门禁阈值已定，4 条工作流拆给 3 名成员并行"
+    - date: "2026-09-24"
+      from: in_progress
+      to: done
+      by: lead
+      version: 3
+      note: "10 项 AC 全过；门禁脚本 9 pass/0 fail、selftest 通过、浏览器实测品牌层与预设生效"
+    - date: "2026-09-24"
+      from: done
+      to: verified
+      by: kaijia
+      version: 4
+      note: "独立复核 rev6：10/10 AC 全 pass；初检发现的 5 个问题（预设引入顺序失效、文档预设名写错、AC1 口径不自洽、预设无门禁、G8 摘要不全）+ 3 处口径问题全部修复并复验通过"
+  related:
+    - "仓库 fluid-design-spec v1.1 → v2.0"
+    - "触发：用户 2026-09-24 决策 —— 品牌色不该钉死，每个项目按自身品牌背景替换，规范只提供默认值"
+    - "既有发现：v1.1 的 --color-primary 与 --color-text-primary 命名撞车；状态色/提示色在白底对比度不达标（见 context）"
+  goal: "把品牌色从 tokens/tokens.css 里手写死的 6 个 hex 改成 tokens/brand.css 单一品牌层：默认仍是日出蓝 #1A6BFF，换项目只改 1 个文件、2 个输入值；hover/active/暗色提亮/按钮文字色全部由固定算法派生；交付 scripts/brand.mjs，让「换完品牌能不能用」变成可自动判定的门禁（对比度、交互态可辨性、状态色撞色、令牌引用完整性）。"
+  context: |
+    v1.1 现状（tokens/tokens.css）：Layer 1 里 --color-primary / -hover / -active / -bright / -bright-hover / -bright-active 六个品牌 hex 与中性色阶、状态色混在同一层，全部手写。
+    由此产生三个问题：
+    (1) 换品牌要改 6 个手写 hex，改漏一个就出现「按钮亮、焦点环暗」这类不一致，且没有任何检查能发现；
+    (2) --color-primary（品牌）与 --color-text-primary（正文文字）里的 primary 是两个意思，生成代码时容易混用；
+    (3) 品牌色一旦换成浅色（黄色、亮绿），白字按钮直接不可读 —— v1.1 默认主色 #1A6BFF 配白字本来就只有 4.57:1，是压线通过。
+    本次把「品牌色」从规范资产里拆出来，变成项目输入；规范资产（中性色阶、状态色）保持钉死，语义层与组件层引用方向不变。
+    口径不变：默认色值仍是本规范自拟，不是 OPPO 官方值（见 SOURCES.md 第四节）。
+  assumptions:
+    - "项目如果已经有品牌色，用 hex 直接替换；没有就给默认日出蓝，不阻塞出活。"
+    - "不引入任何构建期依赖：派生值由本地 Node 脚本一次性生成并写进 brand.css，运行时不需要 color-mix()/相对颜色等新 CSS 特性。"
+    - "v1 令牌名保留一个版本的兼容别名，不做静默破坏性改名；--color-accent（日落橘）改名为 --color-accent-2，旧名保留为别名。"
+  blocking_questions: []
+  open_questions:
+    - q: "是否接受把 v1 的 --color-accent（日落橘）改名为 --color-accent-2，旧名降级为兼容别名？"
+      status: assumed
+      assumption: "接受改名并保留别名：改名只为和品牌层的 --brand-accent-2 对齐，避免「accent 一处指品牌色、一处指第二强调色」的歧义；旧名 --color-accent 仍解析到同一颜色，不会静默变色。"
+      if_wrong: "若项目方要求连名字都不动，回滚成本很低：删掉 tokens.css 里的别名块、把 tailwind preset 的 accent 指回 --color-accent，文档表格同步即可，约 15 分钟。"
+      confirm_by: "本次交付时连同下面的重命名策略一起念给用户确认；用户明确反对则在同一个迭代内回滚。"
+    - q: "默认品牌色与配套派生值是否允许与 v1.1 的手写值出现肉眼几乎无感的差异？"
+      status: assumed
+      assumption: "允许。v2.0 默认值改为算法的输出，因此 --brand-accent-hover 由 v1 的 #3D82FF 变为 #2C7CFF、--brand-accent-bright 由 #5B93FF 变为 #4FA0FF。这是「默认值可复现」的代价：默认值必须等于 derive('#1A6BFF') 的输出，否则脚本无法验证默认预设。"
+      if_wrong: "若要求逐位保持 v1 手写值，则把 brand.css 的派生值当手写常量、并把 derive 降级为「只给建议」；代价是默认预设不再能通过门禁自检（脚本会报「派生值与算法不一致」）。"
+      confirm_by: "交付时在回复里列出数值 diff，用户确认视觉可接受。"
+  inputs:
+    - name: 项目品牌主色
+      description: "一个 hex（如 #0E7A5F）。填进 tokens/brand.css 的 --brand-accent。"
+      source: 用户输入 / 项目品牌手册
+      required: true
+    - name: 项目第二强调色
+      description: "可选，一个 hex。不填就沿用默认日落橘 #FF8C42。"
+      source: 用户输入
+      required: false
+    - name: v1.1 令牌清单
+      description: "现有三层令牌，作为重命名与兼容别名的输入。"
+      source: tokens/tokens.css
+      required: true
+  outputs:
+    format: "CSS 令牌文件 + Tailwind 预设 + Node 校验脚本 + 规范文档"
+    schema: |
+      tokens/brand.css          Layer 0 品牌层：2 个必填输入 + 10 个算法派生值（12 个 --brand-* 令牌）
+      tokens/brand.presets.css  3 个项目预设（:root[data-brand="ink-green|magenta|teal"]）
+      tokens/tokens.css         Layer 1 全局 / Layer 2 语义 / Layer 3 组件 + v1 兼容别名块
+      tokens/tailwind.preset.js 品牌色接入 Tailwind（colors.brand / accent / on-accent）
+      scripts/brand.mjs         check | derive | selftest 三个子命令
+      Design.md                 第 2 节「色彩系统」重写 + 生成后自查清单
+      README.md / SOURCES.md / DESIGN.mobile.md / DESIGN.web.md / fluid-design.skill.md  同步口径
+    path: "仓库根目录（fluid-design-spec）"
+  constraints:
+    - "零第三方依赖：scripts/brand.mjs 只用 Node 内置模块（node:fs / node:process），Node ≥ 18。"
+    - "不破坏 v1：--color-primary / -hover / -active / -bright / -bright-hover / -bright-active、--color-accent 六个旧名必须在 tokens.css 里仍可解析到正确颜色，并标注 deprecated。"
+    - "语义层与组件层只允许引用（不定义）颜色值；品牌 hex 只允许出现在 tokens/brand.css。"
+    - "默认值必须等于算法输出：node scripts/brand.mjs derive \"#1a6bff\" 的 10 行派生段输出与 tokens/brand.css 的 @brand-derived 段逐字一致。"
+    - "令牌派生值不依赖 color-mix() / oklch() / 相对颜色语法：brand.css 里全是静态 hex，老 WebView 也能用（文档里的光斑示例允许用 color-mix 生成半透明，不参与令牌解析）。"
+    - "门禁阈值冻结（不得由执行者擅自放宽）：文字对比度 4.5:1、暗色主色对底色 4.5:1、交互态 OKLab 明度差 ≥0.03、品牌色与状态色色相环距离 ≥15°。"
+  out_of_scope:
+    - "不引入构建管线（PostCSS/Tailwind 编译、CSS 变量打包）与 CI 配置。"
+    - "不改动任何动效、间距、圆角、字体令牌。"
+    - "不改状态色色值（#34C759 / #FF9500 / #FF3B30）与中性色阶。"
+    - "不生成示范 HTML 页面（沿用 README 第六节的待补样例）。"
+    - "不做颜色主题生成器 UI / 在线选色器。"
+  tools:
+    - "node（≥18，本机 v24.14.1）"
+    - "python3（spec-builder 的 validate_spec.py / spec_status.py）"
+    - "grep / read / edit / write（团队共享工作区）"
+  steps:
+    - "S0 全员：先读 specs/feature-brand-token-layer.contract.md —— 令牌名、默认值、算法、门禁阈值、CLI 契约全部冻结在此，不得自行改数值或放宽阈值。"
+    - "S1 tokens-dev：新建 tokens/brand.css，写入 SPEC 冻结的 12 行默认值（逐字，不得四舍五入或改写大小写，统一小写 hex）。"
+    - "S2 tokens-dev：改造 tokens/tokens.css —— 删掉 Layer 1 的 6 个品牌 hex，改为品牌层引用；日落橘改名 --color-accent-2；语义层的 --color-action-* / --color-focus-ring / --color-status-info 指向 --brand-accent*；新增 --color-on-accent / --color-on-accent-2；末尾加 v1 兼容别名块。"
+    - "S3 tokens-dev：tokens/tailwind.preset.js 增加 brand（--brand-accent*）、accent（--color-accent-2）、on-accent 映射；保留旧键。"
+    - "S4 tokens-dev：新建 tokens/brand.presets.css，写入 SPEC 冻结的 3 个预设。"
+    - "S5 script-dev：新建 scripts/brand.mjs，实现 check / derive / selftest 三个子命令与 G1~G9、W1~W4 门禁（含 CSS 解析、var() 链解析、预设体检）。"
+    - "S6 集成：在真实 tokens/ 文件上跑 node scripts/brand.mjs check，必须 exit 0；跑 selftest 必须 exit 0（内部负例全部按预期失败）。"
+    - "S7 docs-core：重写 Design.md 第 2 节（四层结构 + 品牌层 + 换品牌五步法 + 门禁表 + 禁止项），并补生成后自查清单。"
+    - "S8 lead：同步 README.md（目录、换品牌五步法、v1→v2 迁移）、SOURCES.md（品牌色口径）、DESIGN.mobile.md / DESIGN.web.md / fluid-design.skill.md（措辞与 on-accent 用法）。"
+    - "S9 独立复核：另一名成员按 AC1~AC10 逐条复跑，核对 Design.md 令牌表与 tokens.css 实际定义一致。"
+  acceptance_criteria:
+    - "AC1 换品牌只改一个文件：按 Design.md 2.2 五步法，**只修改 tokens/brand.css**（把 --brand-accent 改成 #0e7a5f，并用 derive 输出覆盖 @brand-derived 段），不改任何其他文件，node scripts/brand.mjs check exit 0（G1~G9 全 pass）；改完 tokens.css 内品牌 hex 数量为 0，全仓除 brand.css / 文档 / 脚本自测夹具外无第二处品牌令牌定义。注意：只改输入、不覆盖派生段时 G4 与 G8 会 fail，这是防手改走样的设计意图，不属于 AC1 的通过条件。"
+    - "AC2 默认值可复现：node scripts/brand.mjs derive '#1a6bff' 打印的 10 行派生值与 tokens/brand.css 的 @brand-derived 段逐字相同（含小写 hex 与两空格缩进），diff 为空。"
+    - "AC3 门禁能拦坏值：node scripts/brand.mjs selftest exit 0 且输出 3 个负例各自命中预期门禁（① 亮品牌色 #ffd400 配白字 → G1 失败；② hover 与默认值相同 → G4 失败；③ 品牌色 #c2410c → G5 撞色失败）；同时把 brand.css 的 --brand-accent-hover 改成 #1a6bff 后 check 必须 exit 1。"
+    - "AC4 明暗对比达标：check 输出明色 --color-text-primary/--color-bg-base、暗色同项、以及 --brand-on-accent/--brand-accent 的实测对比度，全部 ≥4.5:1（默认预设实测 15.61 / 17.65 / 4.57）。"
+    - "AC5 撞色可判定：check --brand '#c2410c' exit 1 并打印「与 --color-error 色相距离 10° < 15°」；check --brand '#0e7a5f' exit 0。"
+    - "AC6 交互态可辨：check 打印 hover/active 相对基准的 OKLab 明度差，**并按落回 8bit sRGB 后的实测值判定**（默认实测 hover +0.0371 / active -0.0699；同时打印名义步长 +0.0500 / -0.0700），四种交互态实测 |ΔL| 全部 ≥0.03。"
+    - "AC7 兼容不破：tokens.css 解析后 --color-primary 与 --brand-accent 解析值相同，--color-accent 与 --color-accent-2 解析值相同；node -e \"require('./tokens/tailwind.preset.js')\" 成功且 theme.extend.colors.brand 指向 var(--brand-accent)。"
+    - "AC8 文档一致：Design.md 第 2 节令牌表列出的每个令牌名都能在 tokens/ 下找到定义，且未定义令牌数为 0；文档写明「同一个 --color-action-default 在明暗两套下的取值」。"
+    - "AC9 预设可用（含真实浏览器验证）：① node scripts/brand.mjs check 的 G9 对 brand.presets.css 的 3 个预设全 pass（7 个派生值与 derive 一致 + G1/G2 达标）；② 三个预设色分别 check --brand 均 exit 0；③ 浏览器里按 \"tokens.css → brand.presets.css\" 顺序引入、设 data-brand 后，--brand-accent 与该预设按钮渲染色等于预设值（ink-green / magenta / teal 三个都要验）。"
+    - "AC10 引用完整：tokens/brand.css + tokens/tokens.css + tailwind.preset.js 中每个 var(--x) 都能找到定义，未定义引用数为 0（G7）；同时 G8 报告「派生段与算法输出 diff = 0」。"
+  verification:
+    result: "rev6 独立复核：10/10 AC pass；check 9 pass/0 fail/3 warn、selftest exit 0、derive 与 brand.css 派生段逐字节一致；残留 2 条非阻塞建议已收入 follow_ups F4~F7"
+    verified_by: independent
+    verifier: verifier
+    verified_at: "2026-09-24"
+    acceptance:
+      - criterion: "AC#1 换品牌只改一个文件（只动 brand.css 即可 exit 0）"
+        status: pass
+        evidence: "备份→只改 brand.css（输入 + derive 覆盖派生段）→ node scripts/brand.mjs check exit 0（9 pass/0 fail）；cmp 还原后逐字节相同，md5 46812268232ec39eaebbc82194dd5626"
+      - criterion: "AC#2 默认值可复现"
+        status: pass
+        evidence: "diff <(node scripts/brand.mjs derive '#1a6bff') <(brand.css 派生段) 为空"
+      - criterion: "AC#3 门禁能拦坏值"
+        status: pass
+        evidence: "selftest exit 0，负例点名 G1/G4/G5；hover 改成与默认相同 → check exit 1 且 G4 fail"
+      - criterion: "AC#4 明暗对比达标"
+        status: pass
+        evidence: "check: 明 15.61 / 明次 5.69 / 暗 17.65 / 暗次 8.91 / on-accent 4.57，全部 ≥4.5；复核用独立 Python 实现复算吻合"
+      - criterion: "AC#5 撞色可判定"
+        status: pass
+        evidence: "check --brand '#c2410c' exit 1（与 --color-error 相距 10°<15°）；'#0e7a5f' exit 0"
+      - criterion: "AC#6 交互态可辨"
+        status: pass
+        evidence: "G4 实测 hover +0.0371 / active -0.0699 / bright-hover +0.0428 / bright-active -0.0559，min|ΔL| 0.0371 ≥0.03"
+      - criterion: "AC#7 兼容不破"
+        status: pass
+        evidence: "解析后 --color-primary==--brand-accent、--color-accent==--color-accent-2；require tailwind preset 成功且 brand.DEFAULT=var(--brand-accent)"
+      - criterion: "AC#8 文档一致"
+        status: pass
+        evidence: "复核抽取 Design.md 第 2 节 61 个令牌名逐个查定义，未定义 0；并写明 --color-action-default 明暗取值不同"
+      - criterion: "AC#9 预设可用（含浏览器）"
+        status: pass
+        evidence: "G9「3/3 一致且达标」pass；真实 <link>+@import 三种引入顺序下 ink-green/magenta/teal 全部生效且按钮渲染色等于预设值"
+      - criterion: "AC#10 引用完整"
+        status: pass
+        evidence: "G7 未定义 0 个（共 150 处引用）；G8 diff = 0"
+    commands:
+      - "node scripts/brand.mjs check -> 9 pass / 0 fail / 3 warn, exit 0"
+      - "node scripts/brand.mjs selftest -> exit 0（3 负例命中 G1/G4/G5）"
+      - "node scripts/brand.mjs check --brand '#c2410c' -> exit 1"
+      - "Playwright 真实 link/@import 三种顺序 -> 3/3 预设生效"
+    artifacts:
+      - "specs/feature-brand-token-layer.verification.md"
+    unverified: []
+  follow_ups:
+    - "F1（中）：品牌色明度很高（如 #ffd400）时 bright 被 min(1,…) 顶到 L=1，bright-hover 与 bright 同值，G4 会 fail —— 这是冻结算法的固有边界，脚本会明确报 fail 而不是静默放过。若后续要支持这类亮色品牌，需扩展算法（顶到边界时 hover 反向取暗一档），并重跑全部预设。"
+    - "F2（低）：--color-text-tertiary 对页面底色仅 明 2.86:1 / 暗 4.26:1，本规范已声明它只用于提示与占位、不用于正文，故降级为 W1 提示；是否调深该色值待定，属 v1.1 遗留、非本次范围。"
+    - "F3（低）：tokens/tailwind.preset.js 的 primary.brand 仍指向 deprecated 的 var(--color-primary)（解析值等价，已加注释）；下次动这个文件时顺手改为 var(--brand-accent)。"
+    - "F4（低）：selftest 目前只覆盖 G1/G4/G5 三个负例，没有 G9 的负例；G9 的有效性由复核的 5 个手工负例证明。下次脚本改动时给 selftest 补一个『改坏预设派生值 → G9 fail』。"
+    - "F5（低）：G9 的失败文案用两位小数，临界色（如 #699018，on-accent 4.4995:1）会显示成「4.50:1 < 4.5:1」，判定正确但读数容易误解；建议该行加三位小数或补精确值。"
+    - "F6（低）：光斑示例用 color-mix() 生成半透明，需 Chrome 111+ / Safari 16.2+；已在 DESIGN.mobile.md 与 fluid-design.skill.md 注明这是唯一允许直接读品牌层的例外，并给了老内核退回 rgba() 的提示。"
+    - "F7（信息）：README「二、三步上手」标题写三步、实际列 4 步，属 v1.1 遗留措辞，不影响任何 AC。"
+  failure_handling:
+    - scenario: "项目品牌色过浅或过饱和，导致 --brand-on-accent 两个候选文字色都到不了 4.5:1"
+      handling: "check 报 G1 失败并给出两个候选的实测值 + 建议：把品牌色明度调低到能过线，或改用深色文字。不自动改色（颜色是设计决策）。"
+    - scenario: "项目品牌色与 --color-error / --color-warning / --color-success 色相撞车（<15°）"
+      handling: "check 报 G5 失败，指出撞的是哪个状态色、差多少度；由项目在「微调品牌色相」与「该状态改用图标+文字兜底」之间选一个，规范不替项目决定。"
+    - scenario: "派生值与算法不一致（有人手改了 brand.css 的派生行）"
+      handling: "check 的 G4/G1 会因实测值不过线而失败；同时 derive 输出与文件 diff 不为空，提示重跑 derive 覆盖。"
+    - scenario: "脚本读取的 CSS 格式被打乱（有人改成多行值或加了 color-mix）"
+      handling: "解析失败时 check 直接 exit 1 并打印无法解析的行号，不做静默跳过。"
+  examples:
+    - input: "node scripts/brand.mjs derive '#0e7a5f'"
+      output: "10 行派生段，逐字可粘贴：--brand-accent-hover: #27896d; --brand-accent-active: #00654c; --brand-accent-bright: #4fab8e; --brand-accent-bright-hover: #5fbb9d; --brand-accent-bright-active: #379579; --brand-on-accent: #ffffff; --brand-on-accent-bright: #1a1d24; --brand-accent-2-hover: #ff9c53; --brand-accent-2-active: #e67627; --brand-on-accent-2: #1a1d24;"
+    - input: "node scripts/brand.mjs check"
+      output: "G1~G9 全 pass；W1 提示 --color-text-tertiary 对页面底色 明 2.86:1 / 暗 4.26:1（仅提示与占位用）、W2 提示 G1 实测 4.57:1 偏紧、W4 提示第二强调色与 --color-warning 相距 12.2°；exit 0"
+    - input: "node scripts/brand.mjs check --brand '#c2410c'"
+      output: "G5 fail：品牌色色相 38°，与 --color-error(#FF3B30, 29°) 距离 10° < 15°；exit 1"

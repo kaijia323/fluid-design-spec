@@ -1,27 +1,30 @@
 /* ============================================================================
  * 流体设计令牌 · tokens.css
- * 版本 v1.1 ｜ 配套文档：../Design.md（唯一事实来源）、../SOURCES.md（口径与出处）
+ * 版本 v2.0 ｜ 配套文档：../Design.md（唯一事实来源）、../SOURCES.md（口径与出处）
  *
- * 三层结构：Layer 1 Global → Layer 2 Semantic → Layer 3 Component
- * 组件只引用语义令牌，语义令牌只引用全局令牌。禁止跨层引用，禁止硬编码。
+ * 四层结构：Layer 0 品牌层（brand.css）→ Layer 1 Global → Layer 2 Semantic → Layer 3 Component
+ * 组件只引用语义令牌，语义令牌只引用全局令牌与品牌层令牌。禁止跨层引用，禁止硬编码。
+ *
+ * 品牌色是项目输入，不是规范的一部分：换项目只改 tokens/brand.css 的 2 个输入值；
+ * 本文件里的品牌 hex 数量为 0，品牌 hex 只允许出现在 tokens/brand.css。
+ *
+ * 第一行非注释语句就是 @import "./brand.css";，会自动带上品牌层；
+ * 先引 brand.css 再引本文件也可以，两者等价（自定义属性只会被定义一次）。
  *
  * 用法：
  *   1) 引入本文件
  *   2) 在 <html> 上标注平台：data-platform="mobile" | "web"
  *      （不标注时默认按 Web / B 端组件规格）
  *   3) 暗色模式默认跟随系统；也可手动指定 <html data-theme="dark"> 强制
+ *   4) 换预设配色：<html data-brand="ink-green">；brand.presets.css 必须晚于 brand.css 引入
  * ==========================================================================*/
+@import "./brand.css";
 
 /* ========================== Layer 1 · Global ============================== */
 :root {
-  /* ---- 品牌色 ---- */
-  --color-primary: #1a6bff;          /* 日出蓝 */
-  --color-primary-bright: #5b93ff;   /* 暗色下提亮版 */
-  --color-primary-hover: #3d82ff;
-  --color-primary-active: #1557d6;
-  --color-primary-bright-hover: #7ba8ff;
-  --color-primary-bright-active: #4a7fe0;
-  --color-accent: #ff8c42;           /* 日落橘 */
+  /* ---- 颜色（规范资产，不随品牌变）----
+   * v2.0：品牌色（含第二强调色）已全部迁到 Layer 0（tokens/brand.css）与 Layer 2 语义层；
+   * 本层只保留状态色与分类标识色，这里不再出现任何品牌 hex。 */
   --color-success: #34c759;
   --color-warning: #ff9500;
   --color-error: #ff3b30;
@@ -112,6 +115,12 @@
   --pointer-y: 50%;
 }
 
+/* ============ Layer 2 · Semantic（不随主题变，明暗两套取值相同） ========== */
+:root {
+  --color-accent-2: var(--brand-accent-2);        /* 第二强调色 = 品牌层输入，不写死 */
+  --color-on-accent-2: var(--brand-on-accent-2);  /* 第二强调色实心块上的文字色 */
+}
+
 /* ====================== Layer 2 · Semantic（明色） ======================== */
 :root,
 :root[data-theme="light"] {
@@ -128,15 +137,16 @@
   --color-border-subtle: rgba(26, 29, 36, 0.08);
   --color-border-strong: rgba(26, 29, 36, 0.16);
 
-  --color-action-default: var(--color-primary);
-  --color-action-hover: var(--color-primary-hover);
-  --color-action-active: var(--color-primary-active);
-  --color-focus-ring: var(--color-primary);
+  --color-action-default: var(--brand-accent);
+  --color-action-hover: var(--brand-accent-hover);
+  --color-action-active: var(--brand-accent-active);
+  --color-focus-ring: var(--brand-accent);
+  --color-on-accent: var(--brand-on-accent);         /* 主色实心按钮上的文字色，不要写 #fff */
 
   --color-status-success: var(--color-success);
   --color-status-warning: var(--color-warning);
   --color-status-error: var(--color-error);
-  --color-status-info: var(--color-primary);
+  --color-status-info: var(--brand-accent);
 
   --shadow-1: 0 1px 3px rgba(16, 20, 28, 0.08);
   --shadow-2: 0 8px 24px rgba(16, 20, 28, 0.1);
@@ -158,10 +168,12 @@
     --color-border-subtle: rgba(255, 255, 255, 0.08);
     --color-border-strong: rgba(255, 255, 255, 0.16);
 
-    --color-action-default: var(--color-primary-bright);
-    --color-action-hover: var(--color-primary-bright-hover);
-    --color-action-active: var(--color-primary-bright-active);
-    --color-focus-ring: var(--color-primary-bright);
+    --color-action-default: var(--brand-accent-bright);
+    --color-action-hover: var(--brand-accent-bright-hover);
+    --color-action-active: var(--brand-accent-bright-active);
+    --color-focus-ring: var(--brand-accent-bright);
+    --color-on-accent: var(--brand-on-accent-bright);  /* 提亮主色上的文字色 */
+    --color-status-info: var(--brand-accent-bright);   /* 与 focus-ring 一起提亮，避免「焦点环亮、info 暗」 */
 
     --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.32);
     --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.4);
@@ -182,10 +194,12 @@
   --color-border-subtle: rgba(255, 255, 255, 0.08);
   --color-border-strong: rgba(255, 255, 255, 0.16);
 
-  --color-action-default: var(--color-primary-bright);
-  --color-action-hover: var(--color-primary-bright-hover);
-  --color-action-active: var(--color-primary-bright-active);
-  --color-focus-ring: var(--color-primary-bright);
+  --color-action-default: var(--brand-accent-bright);
+  --color-action-hover: var(--brand-accent-bright-hover);
+  --color-action-active: var(--brand-accent-bright-active);
+  --color-focus-ring: var(--brand-accent-bright);
+  --color-on-accent: var(--brand-on-accent-bright);  /* 提亮主色上的文字色 */
+  --color-status-info: var(--brand-accent-bright);   /* 与 focus-ring 一起提亮，避免「焦点环亮、info 暗」 */
 
   --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.32);
   --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.4);
@@ -229,4 +243,20 @@
     --motion-enter: var(--duration-100);
     --motion-exit: var(--duration-100);
   }
+}
+
+/* ======================= v1 兼容别名块（deprecated） =======================
+ * v2.0 起下面这些名字只做兼容保留，新代码请勿使用（拿不准就用语义令牌）：
+ *   --color-primary*  →  --brand-accent*（品牌层）
+ *   --color-accent    →  --color-accent-2（第二强调色）
+ * 解析值不变，不会静默变色；迁移映射见 ../Design.md 与 ../README.md。
+ * 按钮 / 主色块上的文字色请用 --color-on-accent，不要用 --color-text-inverse，也不要写 #fff。 */
+:root {
+  --color-primary: var(--brand-accent);                              /* deprecated */
+  --color-primary-hover: var(--brand-accent-hover);                  /* deprecated */
+  --color-primary-active: var(--brand-accent-active);                /* deprecated */
+  --color-primary-bright: var(--brand-accent-bright);                /* deprecated */
+  --color-primary-bright-hover: var(--brand-accent-bright-hover);    /* deprecated */
+  --color-primary-bright-active: var(--brand-accent-bright-active);  /* deprecated */
+  --color-accent: var(--color-accent-2);                             /* deprecated */
 }

@@ -2,7 +2,7 @@
 
 > **本文件是唯一事实来源（Single Source of Truth）**，定义流体设计的共享设计令牌与双端差异总纲。
 > 生成任何界面之前先读本文件，再按目标端读 `DESIGN.mobile.md` 或 `DESIGN.web.md`，动态行为一律读 `fluid-design.skill.md`。
-> 版本 v1.1 ｜ 来源：ColorOS 17 流体设计语言 + 官方口径核查（逐条见 `SOURCES.md`）｜ 标注 **※** 的条目为本规范补充定义。
+> 版本 v2.0 ｜ 来源：ColorOS 17 流体设计语言 + 官方口径核查（逐条见 `SOURCES.md`）｜ 标注 **※** 的条目为本规范补充定义。
 >
 > **口径说明（重要）**：本文件里「流体设计 / 凝光视效 / 流体动效 / 柔性反馈」等**理念表述**来自 OPPO 官方；但**具体数值令牌**（颜色 hex、圆角 px、动效 ms、缓动曲线、断点、间距阶）是**本规范为工程落地自拟的取值，OPPO 从未公开发布过这些数值**。请勿把它们当成官方标准对外引用。
 
@@ -25,7 +25,7 @@
 
 ### 0.3 机器可读令牌
 
-- `tokens/tokens.css` — CSS 变量（Global → Semantic → Component 三层）
+- `tokens/tokens.css` — CSS 变量（品牌层 → 全局层 → 语义层 → 组件层 四层；品牌层单列在 `tokens/brand.css`）
 - `tokens/tailwind.preset.js` — Tailwind `theme.extend` 预设
 
 文档与令牌必须同步：改规范就改令牌，反之亦然。
@@ -94,29 +94,107 @@
 
 ## 2. 色彩系统
 
-### 2.1 三层令牌结构
+### 2.1 四层令牌结构
+
+v1.1 的「Global → Semantic → Component」三层，在 v2.0 扩成四层：把**品牌色**从全局层里拆出来，单独作为「项目输入」的一层。
 
 ```
-Global Tokens  →  Semantic Tokens      →  Component Tokens
---color-primary →  --color-action-default →  --button-primary-bg
+Layer 0 品牌层   --brand-*                                  ← 项目输入，换项目只改这里
+      ↓ 引用
+Layer 1 全局层   --color-neutral-* / 状态色 / --color-purple  ← 规范资产，不随品牌变
+      ↓ 引用
+Layer 2 语义层   --color-action-* / --color-bg-* / --color-text-* / --color-border-* / --color-status-* / --color-on-accent* / --color-accent-2
+      ↓ 引用
+Layer 3 组件层   --button-radius / --input-radius / --card-radius …
 ```
 
-规则：组件只允许引用语义令牌，语义令牌只允许引用全局令牌。**禁止跨层引用，禁止硬编码颜色。**
+| 层 | 令牌前缀 | 定义在 | 谁可以引用它 |
+|---|---|---|---|
+| Layer 0 品牌层 | `--brand-*` | `tokens/brand.css`（示例预设：`tokens/brand.presets.css`） | 语义层（光斑例外见下） |
+| Layer 1 全局层 | `--color-neutral-*`、状态色、`--color-purple` | `tokens/tokens.css` | 语义层 |
+| Layer 2 语义层 | `--color-action-*` / `--color-bg-*` / `--color-text-*` / `--color-border-*` / `--color-status-*` / `--color-on-accent` / `--color-on-accent-2` / `--color-accent-2` | `tokens/tokens.css` | 组件层、页面代码 |
+| Layer 3 组件层 | `--button-radius`、`--input-radius`、`--card-radius`、`--tag-radius`、`--page-gutter` 等 | `tokens/tokens.css` | 页面代码 |
 
-### 2.2 Global 色彩（品牌色）
+引用方向是硬规则：
+
+- **语义层可以引用品牌层或全局层**；
+- **反向禁止**：品牌层、全局层都不许引用语义层（语义层的 `--color-accent-2: var(--brand-accent-2)` 是语义层引用品牌层，合法）；
+- **组件层只引用语义层**，不许跨到品牌层或全局层；
+- **唯一例外（凝光光斑）**：凝光光斑可以直接读 `--brand-accent`（语义层暂无「品牌色低透明度」令牌），见 `DESIGN.mobile.md` 第 7 节与 `fluid-design.skill.md` 2.2；除此之外组件 / 页面一律不得跨层引用品牌层或全局层。
+- 品牌 hex 只允许写在 `tokens/brand.css` 一个文件里，其他地方一律 `var()` 引用，禁止硬编码。
+
+Tailwind 侧同构：`tokens/tailwind.preset.js` 已把 `colors.brand`（`--brand-accent*`）、`colors.accent`（`--color-accent-2`）、`colors['on-accent']`（`--color-on-accent`）挂进 `theme.extend`；写 Tailwind 用 `bg-brand` / `text-on-accent`，不要写任意值 `bg-[#1a6bff]`。
+
+### 2.2 品牌层（Layer 0）：可替换，唯一改动点
+
+**品牌色是项目输入，不是规范的一部分**；规范只提供默认值（默认日出蓝 `#1A6BFF`），换项目只改 `tokens/brand.css`。（颜色 hex 是本规范自拟的，OPPO 从未公开过这些数值。）
+
+| 令牌 | 类型 | 默认值 | 用途 |
+|---|---|---|---|
+| `--brand-accent` | **输入（唯一必改项）** | `#1a6bff` | 项目品牌主色（默认日出蓝）：主按钮、焦点环、链接、info 状态 |
+| `--brand-accent-2` | **输入** | `#ff8c42` | 第二强调色（默认日落橘）；语义名是 `--color-accent-2` |
+| `--brand-accent-hover` | 派生 | `#2c7cff` | 明色悬停 |
+| `--brand-accent-active` | 派生 | `#0053e6` | 明色按下 |
+| `--brand-accent-bright` | 派生 | `#4fa0ff` | 暗色模式用的提亮版（对暗底 ≥ 4.5:1） |
+| `--brand-accent-bright-hover` | 派生 | `#5fb1ff` | 暗色悬停 |
+| `--brand-accent-bright-active` | 派生 | `#3989ff` | 暗色按下 |
+| `--brand-on-accent` | 派生 | `#ffffff` | 品牌主色**实心按钮上的文字色**（明色） |
+| `--brand-on-accent-bright` | 派生 | `#1a1d24` | 提亮主色上的文字色（暗色） |
+| `--brand-accent-2-hover` | 派生 | `#ff9c53` | 第二色悬停 |
+| `--brand-accent-2-active` | 派生 | `#e67627` | 第二色按下 |
+| `--brand-on-accent-2` | 派生 | `#1a1d24` | 第二色实心块上的文字色 |
+
+前两行是**输入**，后十行是**派生**：由固定算法从输入算出来（OKLab 只调明度 L，C 与 H 不动，禁止用 HSL / HSV），**不要手改**；手改后 `node scripts/brand.mjs check` 的 G8 会报「派生值与算法不一致」。
+
+**换品牌五步法**：
+
+1. **填 2 个输入**：项目品牌主色写进 `--brand-accent`（唯一必改项）；第二强调色可选写进 `--brand-accent-2`，不填就沿用默认日落橘 `#ff8c42`。
+2. **跑 derive**：`node scripts/brand.mjs derive '#0e7a5f' --brand-2 '#ff8c42'`（换成你的色值），用输出的 10 行逐字覆盖 `tokens/brand.css` 的 `@brand-derived` 段。
+3. **跑 check**：`node scripts/brand.mjs check`，G1~G9 全 pass 才算过门禁；有 fail 就回去调品牌色，**不许放宽阈值**。
+4. **明暗两套各看一眼**：重点看主色实心按钮上的文字（`--color-on-accent`）、焦点环、hover / active 三态。
+5. **提交**：只提交 `tokens/brand.css`，`tokens/tokens.css` 一行都不用动。
+
+- v1.1 的 `--color-primary` / `-hover` / `-active` / `-bright` / `-bright-hover` / `-bright-active` 六个旧名保留为兼容别名（deprecated），在 `tokens/tokens.css` 末尾指向对应的 `--brand-*`；新代码不要再用旧名。
+- 项目有多套品牌时，照 `tokens/brand.presets.css` 写预设，用 `<html data-brand="ink-green">` 切换（内置 `ink-green` / `magenta` / `teal`）。
+- **预设引入顺序**：预设文件要放在 `tokens.css`（或 `brand.css`）**之后**引入，正确顺序是 `tokens.css → brand.presets.css`。原因：`tokens.css` 第一行的 `@import "./brand.css"` 会把默认品牌值展开在预设之后，同特异性下后者胜，顺序放错三个预设会全部失效。预设选择器已用 `:root[data-brand]` 做双保险，顺序放错也不会失效；但规范仍要求按上面的顺序引入。
+
+### 2.3 全局层（Layer 1）：规范资产，不随项目变
+
+中性色阶、状态色与分类色是规范资产，任何项目都不改，只在 `tokens/tokens.css` 里定义一次。第二强调色不在这一层：它是品牌层的第 2 个输入，语义名 `--color-accent-2` 挂在语义层（见 2.2 / 2.4）。
+
+**中性色阶**（明暗两套底色与文字的来源）
+
+| 令牌 | 值 | 说明 |
+|---|---|---|
+| `--color-neutral-0` | `#ffffff` | 明色表面 |
+| `--color-neutral-50` | `#f5f6f9` | 明色页面底色 |
+| `--color-neutral-100` | `#edeff3` | 明色凹陷区 |
+| `--color-neutral-150` | `#dfe3ea` | 备用阶（语义层未引用） |
+| `--color-neutral-300` | `#a8b0bf` | 暗色次要文字 |
+| `--color-neutral-400` | `#8a93a3` | 明色提示文字 |
+| `--color-neutral-500` | `#6e7686` | 暗色提示文字 |
+| `--color-neutral-600` | `#5a6270` | 明色次要文字 |
+| `--color-neutral-700` | `#2a2f3a` | 备用阶（语义层未引用） |
+| `--color-neutral-800` | `#1a1d24` | 明色主文字 |
+| `--color-neutral-900` | `#14171f` | 暗色表面 |
+| `--color-neutral-950` | `#0b0d12` | 暗色页面底色 |
+| `--color-neutral-1000` | `#090a0e` | 暗色凹陷区 |
+| `--color-ink-bright` | `#f2f4f8` | 暗色主文字 |
+
+**状态色与分类色**（不随品牌变）
 
 | 令牌 | 值 | 用途 |
 |---|---|---|
-| `--color-primary` | `#1A6BFF` | 日出蓝，品牌主色、主按钮、焦点环 |
-| `--color-accent` | `#FF8C42` | 日落橘，强调、辅助高亮 |
-| `--color-success` | `#34C759` | 成功状态 |
-| `--color-warning` | `#FF9500` | 警告状态 |
-| `--color-error` | `#FF3B30` | 错误、危险操作 |
-| `--color-purple` | `#8B5CF6` | 次级强调、分类标识 |
+| `--color-success` | `#34c759` | 成功状态 |
+| `--color-warning` | `#ff9500` | 警告状态 |
+| `--color-error` | `#ff3b30` | 错误、危险操作 |
+| `--color-purple` | `#8b5cf6` | 次级强调、分类标识（和品牌主色是两回事） |
 
-### 2.3 Semantic 语义色（明 / 暗）
+状态色经语义层的 `--color-status-success` / `--color-status-warning` / `--color-status-error` 使用；`--color-status-info` 是例外，它等于品牌主色（见 2.4）。
 
-**暗色是主模式**，明色为自动切换的备选。以下暗色列是设计基准，先做暗色再做明色。
+### 2.4 语义层（Layer 2）：明 / 暗对照
+
+**暗色是主模式**，明色为自动切换的备选。以下暗色列是设计基准，先做暗色再做明色。带 `var(--brand-*)` 的行取值随项目品牌变；写死的 hex 是默认品牌（日出蓝）下的解析结果。
 
 | 语义令牌 | 明色 | 暗色 | 用途 |
 |---|---|---|---|
@@ -127,31 +205,80 @@ Global Tokens  →  Semantic Tokens      →  Component Tokens
 | `--color-text-primary` | `#1A1D24` | `#F2F4F8` | 主文字 |
 | `--color-text-secondary` | `#5A6270` | `#A8B0BF` | 次要文字 |
 | `--color-text-tertiary` | `#8A93A3` | `#6E7686` | 提示、占位 |
-| `--color-text-inverse` | `#FFFFFF` | `#0B0D12` | 反色文字（按钮上） |
+| `--color-text-inverse` | `#FFFFFF` | `#0B0D12` | 反色文字；**不要**拿它当主色按钮文字，那是 `--color-on-accent` 的活 |
 | `--color-border-subtle` | `rgba(26,29,36,0.08)` | `rgba(255,255,255,0.08)` | 分隔线、描边 |
 | `--color-border-strong` | `rgba(26,29,36,0.16)` | `rgba(255,255,255,0.16)` | 输入框、需要强调的边界 |
-| `--color-action-default` | `#1A6BFF` | `#5B93FF` | 可点击主色（暗色下提亮保证对比度） |
-| `--color-action-hover` | `#3D82FF` | `#7BA8FF` | 悬停态 |
-| `--color-action-active` | `#1557D6` | `#4A7FE0` | 按下态 |
-| `--color-focus-ring` | `#1A6BFF` | `#5B93FF` | 焦点环 |
+| `--color-action-default` | `var(--brand-accent)` | `var(--brand-accent-bright)` | 可点击主色（主按钮、链接） |
+| `--color-action-hover` | `var(--brand-accent-hover)` | `var(--brand-accent-bright-hover)` | 悬停态 |
+| `--color-action-active` | `var(--brand-accent-active)` | `var(--brand-accent-bright-active)` | 按下态 |
+| `--color-focus-ring` | `var(--brand-accent)` | `var(--brand-accent-bright)` | 焦点环 |
+| `--color-accent-2` | `var(--brand-accent-2)`（默认 `#FF8C42`） | 同明色（**不随主题变**） | 第二强调色：强调、辅助高亮（品牌层第 2 个输入，项目可换） |
+| `--color-on-accent` | `var(--brand-on-accent)`（默认 `#FFFFFF`） | `var(--brand-on-accent-bright)`（默认 `#1A1D24`） | **品牌主色实心按钮 / 色块上的文字色** |
+| `--color-on-accent-2` | `var(--brand-on-accent-2)`（默认 `#1A1D24`） | 同明色（**不随主题变**） | 第二强调色实心块上的文字色 |
+| `--color-status-success` | `var(--color-success)` | 同明色 | 成功状态 |
+| `--color-status-warning` | `var(--color-warning)` | 同明色 | 警告状态 |
+| `--color-status-error` | `var(--color-error)` | 同明色 | 错误、危险操作 |
+| `--color-status-info` | `var(--brand-accent)` | `var(--brand-accent-bright)` | 信息提示（跟随品牌主色，与焦点环同步） |
 
-### 2.4 暗色模式
+- **同一个 `--color-action-default`，明色取 `--brand-accent`，暗色取 `--brand-accent-bright`**——同一令牌在明暗两套下取值不同，这是设计意图：暗色底色是 `#0B0D12`，直接用明色主色对比度不够。
+- `--color-accent-2` 与 `--color-on-accent-2` 属于语义层，但**不随明暗主题变**（两套取值相同）；`--color-accent-2` 指向品牌层的第二输入 `--brand-accent-2`（默认日落橘 `#ff8c42`），`--color-accent` 是它的 v1 兼容别名（deprecated，颜色不变）。
+
+### 2.5 暗色模式
 
 - **暗色优先**：先设计暗色，再补明色。
 - 用 `prefers-color-scheme: dark` 自动切换；切换过程不要做长时间的整页过渡动画。
 - 暗色下不要用纯黑 `#000` 打底，用 `#0B0D12`，避免 OLED 上边缘发"死黑"。
-- 暗色下主色需要提亮（见 `--color-action-default` 暗色列），保证文字与底色的对比度。
+- 暗色下主色取 `--brand-accent-bright`（默认 `#4FA0FF`），由派生算法保证它对暗色底色 `#0B0D12` 的对比度 ≥ 4.5:1；**不要手写提亮值**，改了输入就重跑 `derive`。
 
-### 2.5 用法规则
+### 2.6 用法规则
 
 - 正文文字与背景对比度 ≥ 4.5:1，大字（≥ 18.66px 粗体或 ≥ 24px）≥ 3:1。
 - 状态色只表达状态，不用于装饰；成功/警告/错误不能互换使用。
 - 半透明只用于浮层（磨砂卡片、浮岛），正文区域保持实底。
 - 同一屏内主色面积不要超过 20%，主色留给唯一主操作。
+- **状态色不随品牌变**：换品牌只动品牌层的 2 个输入，`--color-success` / `--color-warning` / `--color-error` 永远是规范值。
+- **品牌主色与状态色的色相距离必须 ≥ 15°**（由 `node scripts/brand.mjs check` 的 G5 判定）；撞色时要么微调品牌色相，要么让该状态改用「图标 + 文字」兜底——规范不替项目决定。
+- **主色实心按钮上的文字用 `--color-on-accent`**，不要写 `#fff`，也不要用 `--color-text-inverse`（那个是给非品牌色背景用的）；第二强调色实心块上的文字用 `--color-on-accent-2`。
 
-### 2.6 禁止项
+### 2.7 门禁与验证
+
+换品牌、改品牌色之后必须跑 `node scripts/brand.mjs check`；门禁跑不过就是不能用，不要靠「看着还行」放行。
+
+| 编号 | 查什么 | 阈值 | 拦不拦 |
+|---|---|---|---|
+| G1 | `--brand-on-accent` 对 `--brand-accent` 的对比度 | ≥ 4.5:1 | 拦 |
+| G2 | `--brand-on-accent-bright` 对 `--brand-accent-bright` | ≥ 4.5:1 | 拦 |
+| G3 | `--brand-accent-bright` 对暗色 `--color-bg-base` | ≥ 4.5:1 | 拦 |
+| G4 | 交互态可辨：hover / active / bright-hover / bright-active 与各自基准的 OKLab 明度差 ΔL | ≥ 0.03 | 拦 |
+| G5 | **品牌主色**与 `--color-success` / `--color-warning` / `--color-error` 的 OKLCH 色相环距离 | ≥ 15° | 拦 |
+| G6 | 明暗两套下 `--color-text-primary`、`--color-text-secondary` 对 `--color-bg-base` 的对比度 | ≥ 4.5:1 | 拦 |
+| G7 | 令牌引用完整性：`brand.css` / `tokens.css` / `tailwind.preset.js` 里每个 `var(--x)` 都有定义 | 未定义数 = 0 | 拦 |
+| G8 | 派生值与算法一致：`brand.css` 派生段 == `derive(读到的输入)` 的输出 | diff = 0 | 拦 |
+| G9 | 预设体检：`brand.presets.css` 每个预设有派生值与算法一致、且 G1/G2 对比度达标 | 全部一致且达标 | 拦 |
+| W1 | `--color-text-tertiary` 对 `--color-bg-base`（页面底色，不是 surface；只用于提示、占位） | < 4.5:1 时提示（默认实测 明 2.86:1 / 暗 4.26:1） | 不拦 |
+| W2 | G1 实测值 < 5.0:1（过线但偏紧） | 提示 | 不拦 |
+| W3 | 品牌主色与分类标识色 `--color-purple` 的色相环距离 | < 15° 时提示 | 不拦 |
+| W4 | 第二强调色与 `--color-success` / `--color-warning` / `--color-error` 的色相环距离 | < 15° 时提示 | 不拦 |
+
+G5 只查品牌主色，不查第二强调色：第二色不承载状态语义，只做小面积强调。默认第二色 `#ff8c42` 与 `--color-warning` 只差 12.2°，`check` 会把它作为 **W4** 提示打印出来，**不算失败**。
+
+```
+node scripts/brand.mjs check                                  # 读 tokens/brand.css + tokens/tokens.css，跑 G1~G9
+node scripts/brand.mjs check --brand '#0e7a5f'                # 不读文件，直接体检一个候选品牌色，跑 G1~G6
+node scripts/brand.mjs derive '#0e7a5f' --brand-2 '#ff8c42'   # 打印 10 行派生段，逐字粘贴进 brand.css
+node scripts/brand.mjs selftest                               # 3 个负例自检，全部按预期被拦才 exit 0
+```
+
+- 退出码：没有 fail → `0`；有 fail 或解析失败 → `1`。
+- 每条门禁输出一行 `G1 <名称> 实测 阈值 pass|fail`，末尾一行 `结果：N pass / M fail / K warn`。
+- 解析失败会打印出错行号并 `exit 1`，不会静默跳过——所以 `brand.css` 的格式（一行一个声明、两个空格缩进、行尾分号、hex 小写）别打乱。
+
+### 2.8 禁止项
 
 - ❌ 硬编码颜色值（`#fff`、`rgb(0,0,0)` 等），必须走 CSS 变量。
+- ❌ 在组件、页面、Tailwind 任意值里写品牌 hex（`#1a6bff`、`#2c7cff` …）——品牌 hex 只允许出现在 `tokens/brand.css`。
+- ❌ 用 `--color-text-inverse` 当主色按钮的文字色（按钮文字用 `--color-on-accent`，第二强调块用 `--color-on-accent-2`）。
+- ❌ 品牌色与状态色同屏撞色（色相距离 < 15°，G5 直接拦）。
 - ❌ 紫蓝渐变、彩虹渐变作为品牌表达。
 - ❌ 同一屏出现两个以上"主色按钮"抢焦点。
 - ❌ 用颜色单独传达信息（必须同时有文字或图标）。
@@ -357,6 +484,9 @@ Global Tokens  →  Semantic Tokens      →  Component Tokens
 - [ ] 是否出现反模式元素（渐变、emoji 图标、嵌套卡片、超 2 层阴影）？
 - [ ] 暗色模式下对比度是否仍然达标？
 - [ ] 是否提供了 `prefers-reduced-motion` 降级？
+- [ ] 换品牌后跑过 `node scripts/brand.mjs check`，G1~G9 全 pass？
+- [ ] 主色按钮 / 色块上的文字用的是 `--color-on-accent`（不是 `#fff`，也不是 `--color-text-inverse`）？
+- [ ] 品牌色与状态色没有撞色（色相距离 ≥ 15°）？
 
 ---
 
