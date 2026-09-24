@@ -35,7 +35,33 @@ fluid-design-spec/
 └── specs/                    # 本仓库自己的任务规格（spec-builder 产物）
 ```
 
-## 二、三步上手
+## 二、安装（复制一句话给你的 AI 助手）
+
+**最快路径**：把下面这段整段复制，粘进你的 AI 助手（Claude Code / Codex / Cursor / DSH 都行）的对话框，回车即可。
+
+```
+把流体设计规范装进当前项目：用 gh repo clone kaijia323/fluid-design-spec docs/fluid-design-spec 克隆下来（私有仓库，走已登录的 gh 或 SSH），再把「写界面前先声明遵循流体设计规范、写完按各文件末尾的自查清单验收、品牌色只改 tokens/brand.css」记进项目的 AGENTS.md / CLAUDE.md，最后告诉我移动端和 Web 端各该读哪几个文件。
+```
+
+**它做完你只需要核对两件事**
+
+1. 仓库是不是落在 `docs/fluid-design-spec/`（位置你说了算，在那一句话里改掉就行）；
+2. 它有没有说清读取组合：移动端 = `Design.md` + `fluid-design.skill.md` + `DESIGN.mobile.md`；Web / B 端 = `Design.md` + `fluid-design.skill.md` + `DESIGN.web.md`。
+
+**不想用一句话，两条命令也行**
+
+```bash
+gh repo clone kaijia323/fluid-design-spec docs/fluid-design-spec   # 或 git clone git@github.com:kaijia323/fluid-design-spec.git docs/fluid-design-spec
+node docs/fluid-design-spec/scripts/brand.mjs check                # 体检，默认配置应当 9 pass / 0 fail / 3 warn
+```
+
+克隆完把 `docs/fluid-design-spec/tokens/tokens.css` 引进项目就能用；换品牌只改同目录的 `brand.css`，Tailwind 项目直接引 `tailwind.preset.js`。
+
+**可选：装成全局 skill**（Claude Code 这类支持 skills 的助手）——把仓库放到 `~/.claude/skills/fluid-design/`，再把 `fluid-design.skill.md` 复制成 `~/.claude/skills/fluid-design/SKILL.md`，之后任何项目里说一句「按流体设计规范来」就能触发，不用每个项目重复克隆。
+
+> **注意：本仓库当前是私有（private）**。你和已登录的助手能克隆；给别人用要先在 GitHub 加 Collaborator，否则对方会报 `could not read Username`。克隆失败时，先让助手跑一次 `gh auth status` 看有没有权限。
+
+## 三、上手四步
 
 1. **先定品牌色**（只有这一步跟项目有关）
    - 有品牌色：改 `tokens/brand.css` 的 `--brand-accent`（可选再改 `--brand-accent-2`），跑 `node scripts/brand.mjs derive '#你的色值'` 覆盖派生段；
@@ -48,7 +74,7 @@ fluid-design-spec/
 3. **生成前先声明**：「我将遵循 Design.md 的规范生成代码。」
 4. **生成后自查**：对照各文件末尾的自查清单（硬编码颜色、漏交互态、动效时长越界、反模式元素），并跑一次 `node scripts/brand.mjs check`。
 
-## 三、换品牌（v2.0 新增）
+## 四、换品牌（v2.0 新增）
 
 品牌色是**项目输入**，规范资产（中性色阶、状态色）不跟着变。目录里只有 `tokens/brand.css` 需要按项目改，其余文件一个字都不用动。
 
@@ -77,7 +103,7 @@ fluid-design-spec/
 
 > 两点必须记住：**主色实心按钮上的文字用 `--color-on-accent`**（不要写 `#fff`，浅色品牌下会不可读）；**状态色不随品牌变**，品牌色撞上错误红/警告橙要改品牌色相，或给该状态加图标与文字。
 
-## 四、双端差异一页速查
+## 五、双端差异一页速查
 
 | 决策点 | 移动端 | Web / B 端 |
 |---|---|---|
@@ -92,13 +118,13 @@ fluid-design-spec/
 | 快捷键 | 无 | ⌘K / Ctrl+K 聚焦搜索 |
 | 信息密度 | 中等 | 优先 |
 
-## 五、三句话记住它
+## 六、三句话记住它
 
 - **凝光视效**：光不是装饰，是界面的指引；光影随手势走。
 - **流体动效**：转场无缝连贯，不硬切，一切缓动都走 `--ease-fluid`。
 - **柔性反馈**：元素随操作收缩、拉伸、回弹，始终跟手。
 
-## 六、反模式（红线，出现即返工）
+## 七、反模式（红线，出现即返工）
 
 - 紫蓝渐变、emoji 当图标
 - 卡片套卡片、阴影超过 2 层
@@ -110,7 +136,7 @@ fluid-design-spec/
 - 弹跳曲线、超过 500ms 的动效
 - Web / B 端出现渐变、光斑、装饰性动画
 
-## 七、v1 → v2 迁移（如果你已经用了 v1.1）
+## 八、v1 → v2 迁移（如果你已经用了 v1.1）
 
 | v1.1 | v2.0 | 处理 |
 |---|---|---|
@@ -121,7 +147,7 @@ fluid-design-spec/
 
 数值上有一处**可见但很小**的变化：`--brand-accent-hover` `#3D82FF → #2C7CFF`、`--brand-accent-bright` `#5B93FF → #4FA0FF`。原因是 v2.0 的默认值必须等于 `node scripts/brand.mjs derive '#1A6BFF'` 的输出，否则默认预设自己就过不了门禁。
 
-## 八、未包含的内容
+## 九、未包含的内容
 
 按要求，本次**没有生成示范 HTML**。原会话里提到的 4 个示范页（移动端登录页、移动端主页、移动端四页导航 SPA、Web/B 端后台）只作为「待补的验收样例」列在这里，需要时再按本规范生成：
 
@@ -130,7 +156,7 @@ fluid-design-spec/
 - 移动端四页导航 SPA：首页 / 探索 / 消息 / 我的，视图切换淡入 + 上移 10px
 - Web/B 端后台：侧边栏 + 顶栏 + 统计卡片 + 表格 + 活动时间线 + ⌘K
 
-## 九、维护方式
+## 十、维护方式
 
 改规范 = 同时改文档和 `tokens/` 里的令牌，两者必须一致；改完跑一次 `node scripts/brand.mjs check`（它会顺手检查令牌引用有没有断）。
 建议流程：先用一个页面跑一遍 → 看偏差 → 在对应文件的组件章节加粗标注修补 → 更新自查清单 → 迭代令牌。
