@@ -1,0 +1,232 @@
+/* ============================================================================
+ * 流体设计令牌 · tokens.css
+ * 版本 v1.0 ｜ 配套文档：../Design.md（唯一事实来源）
+ *
+ * 三层结构：Layer 1 Global → Layer 2 Semantic → Layer 3 Component
+ * 组件只引用语义令牌，语义令牌只引用全局令牌。禁止跨层引用，禁止硬编码。
+ *
+ * 用法：
+ *   1) 引入本文件
+ *   2) 在 <html> 上标注平台：data-platform="mobile" | "web"
+ *      （不标注时默认按 Web / B 端组件规格）
+ *   3) 暗色模式默认跟随系统；也可手动指定 <html data-theme="dark"> 强制
+ * ==========================================================================*/
+
+/* ========================== Layer 1 · Global ============================== */
+:root {
+  /* ---- 品牌色 ---- */
+  --color-primary: #1a6bff;          /* 日出蓝 */
+  --color-primary-bright: #5b93ff;   /* 暗色下提亮版 */
+  --color-primary-hover: #3d82ff;
+  --color-primary-active: #1557d6;
+  --color-primary-bright-hover: #7ba8ff;
+  --color-primary-bright-active: #4a7fe0;
+  --color-accent: #ff8c42;           /* 日落橘 */
+  --color-success: #34c759;
+  --color-warning: #ff9500;
+  --color-error: #ff3b30;
+  --color-purple: #8b5cf6;
+
+  /* ---- 中性色阶 ---- */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f5f6f9;
+  --color-neutral-100: #edeff3;
+  --color-neutral-150: #dfe3ea;
+  --color-neutral-300: #a8b0bf;
+  --color-neutral-400: #8a93a3;
+  --color-neutral-500: #6e7686;
+  --color-neutral-600: #5a6270;
+  --color-neutral-700: #2a2f3a;
+  --color-neutral-800: #1a1d24;
+  --color-neutral-900: #14171f;
+  --color-neutral-950: #0b0d12;
+  --color-neutral-1000: #090a0e;
+  --color-ink-bright: #f2f4f8;
+
+  /* ---- 字体 ---- */
+  --font-sans: "OPPO Sans", "HarmonyOS Sans SC", Inter, -apple-system,
+               "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  /* ---- 字阶 ---- */
+  --text-caption: 12px;   --text-caption-lh: 18px;
+  --text-body-sm: 14px;   --text-body-sm-lh: 22px;
+  --text-body: 16px;      --text-body-lh: 24px;
+  --text-title: 20px;     --text-title-lh: 28px;
+  --text-headline: 24px;  --text-headline-lh: 32px;
+  --text-display: 32px;   --text-display-lh: 40px;
+
+  /* ---- 字重（只用三档）---- */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* ---- 间距（4px 基准）---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ---- 圆角阶 ---- */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ---- 动效时长 ---- */
+  --duration-100: 100ms;
+  --duration-150: 150ms;
+  --duration-200: 200ms;
+  --duration-220: 220ms;
+  --duration-300: 300ms;
+  --duration-400: 400ms;
+
+  /* ---- 缓动 ---- */
+  --ease-fluid: cubic-bezier(0.2, 0, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring-soft: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* ---- 动效位移 ---- */
+  --motion-enter-y: 8px;
+  --motion-exit-y: -4px;
+  --motion-view-y: 10px;
+
+  /* ---- 反馈 ---- */
+  --press-scale-mobile: 0.96;
+  --press-scale-web: 0.98;
+  --drag-max-scale: 1.2;
+  --follow-ratio: 1;
+
+  /* ---- 模糊 ---- */
+  --blur-acrylic: 20px;
+
+  /* ---- 运行时变量（由 JS 写入，此处为缺省值）---- */
+  --pointer-x: 50%;
+  --pointer-y: 50%;
+}
+
+/* ====================== Layer 2 · Semantic（明色） ======================== */
+:root,
+:root[data-theme="light"] {
+  --color-bg-base: var(--color-neutral-50);
+  --color-bg-surface: var(--color-neutral-0);
+  --color-bg-elevated: rgba(255, 255, 255, 0.72);   /* Liquid Acrylic */
+  --color-bg-sunken: var(--color-neutral-100);
+
+  --color-text-primary: var(--color-neutral-800);
+  --color-text-secondary: var(--color-neutral-600);
+  --color-text-tertiary: var(--color-neutral-400);
+  --color-text-inverse: var(--color-neutral-0);
+
+  --color-border-subtle: rgba(26, 29, 36, 0.08);
+  --color-border-strong: rgba(26, 29, 36, 0.16);
+
+  --color-action-default: var(--color-primary);
+  --color-action-hover: var(--color-primary-hover);
+  --color-action-active: var(--color-primary-active);
+  --color-focus-ring: var(--color-primary);
+
+  --color-status-success: var(--color-success);
+  --color-status-warning: var(--color-warning);
+  --color-status-error: var(--color-error);
+  --color-status-info: var(--color-primary);
+
+  --shadow-1: 0 1px 3px rgba(16, 20, 28, 0.08);
+  --shadow-2: 0 8px 24px rgba(16, 20, 28, 0.1);
+}
+
+/* ====================== Layer 2 · Semantic（暗色 = 主模式） =============== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg-base: var(--color-neutral-950);
+    --color-bg-surface: var(--color-neutral-900);
+    --color-bg-elevated: rgba(28, 32, 42, 0.72);
+    --color-bg-sunken: var(--color-neutral-1000);
+
+    --color-text-primary: var(--color-ink-bright);
+    --color-text-secondary: var(--color-neutral-300);
+    --color-text-tertiary: var(--color-neutral-500);
+    --color-text-inverse: var(--color-neutral-950);
+
+    --color-border-subtle: rgba(255, 255, 255, 0.08);
+    --color-border-strong: rgba(255, 255, 255, 0.16);
+
+    --color-action-default: var(--color-primary-bright);
+    --color-action-hover: var(--color-primary-bright-hover);
+    --color-action-active: var(--color-primary-bright-active);
+    --color-focus-ring: var(--color-primary-bright);
+
+    --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.32);
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-bg-base: var(--color-neutral-950);
+  --color-bg-surface: var(--color-neutral-900);
+  --color-bg-elevated: rgba(28, 32, 42, 0.72);
+  --color-bg-sunken: var(--color-neutral-1000);
+
+  --color-text-primary: var(--color-ink-bright);
+  --color-text-secondary: var(--color-neutral-300);
+  --color-text-tertiary: var(--color-neutral-500);
+  --color-text-inverse: var(--color-neutral-950);
+
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+
+  --color-action-default: var(--color-primary-bright);
+  --color-action-hover: var(--color-primary-bright-hover);
+  --color-action-active: var(--color-primary-bright-active);
+  --color-focus-ring: var(--color-primary-bright);
+
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.32);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ============ Layer 3 · Component（默认 = Web / B 端） ==================== */
+:root {
+  --button-radius: var(--radius-sm);      /* 8px  */
+  --button-height: 36px;
+  --input-radius: var(--radius-sm);       /* 8px  */
+  --card-radius: var(--radius-md);        /* 12px */
+  --tag-radius: var(--radius-xs);         /* 6px  */
+  --page-gutter: var(--space-6);          /* 24px */
+  --motion-enter: var(--duration-150);
+  --motion-exit: var(--duration-150);
+  --press-scale: var(--press-scale-web);  /* 0.98 */
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 64px;
+  --topbar-height: 56px;
+  --content-max: 1440px;
+}
+
+/* ============ Layer 3 · Component（移动端：<html data-platform="mobile">） */
+:root[data-platform="mobile"] {
+  --button-radius: var(--radius-md);      /* 12px */
+  --button-height: 48px;
+  --input-radius: var(--radius-md);       /* 12px */
+  --card-radius: var(--radius-lg);        /* 16px */
+  --widget-radius: var(--radius-xl);      /* 20px */
+  --island-radius: var(--radius-2xl);     /* 24px */
+  --tag-radius: var(--radius-full);
+  --page-gutter: var(--space-4);          /* 16px */
+  --motion-enter: var(--duration-300);
+  --motion-exit: var(--duration-300);
+  --press-scale: var(--press-scale-mobile); /* 0.96 */
+}
+
+/* ===================== 无障碍：动效降级（强制） ========================== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-enter: var(--duration-100);
+    --motion-exit: var(--duration-100);
+  }
+}
