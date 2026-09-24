@@ -35,6 +35,7 @@ spec:
     - "仓库 https://github.com/kaijia323/fluid-design-spec —— 已由私有改为公开（用户 2026-09-25 告知，gh repo view 实测 visibility=PUBLIC）"
     - "被修正的对象：提交 9f18efa「docs: README 新增安装章节（复制一句话给 AI 助手）+ 章节顺延重排」"
     - "独立复核（subagent ac7d3736，2026-09-25）：AC1~AC7 全 pass；提出 3 个静默问题（非 UTF-8 的 AGENTS.md 被写坏 / 规范目录不在项目根时写错位置 / submodule 形式提示与事实不符）+ 2 个低危问题（符号链接写到项目外、--agents-md 无路径约束），已全部修复并复测"
+    - "第二轮独立复核（最终修订 @0778718 推送后）：AC1~AC11 全 pass、结论「可以交付」；另提 2 条非阻塞加固（--agents-md 中间目录是符号链接时越界、站在祖先目录写错位置）+ 1 条开关带值，已全部修复（套件 17~21）"
   severity: medium
   symptom: |
     用户照着 README 第二节安装，装出来的结果和期望不符，四处对不上：
@@ -89,7 +90,7 @@ spec:
       detail: "实测保留 .git 时：git ls-files -s fluid-design-spec 的 mode 列 → 160000（规范文件 0 个进仓库）；删掉 .git 后同一命令 → 全部 100644"
       location: "/tmp/fds-a、/tmp/fds-e 临时项目"
     - type: file
-      detail: "install.mjs 的常驻回归套件 /tmp/t/run.sh：16 组场景、52 项断言，最终 52 PASS / 0 FAIL；覆盖标准流程、幂等、末尾无换行的 AGENTS.md、GBK 的 AGENTS.md、只有 CLAUDE.md、三个开关、.gitignore、老位置 docs/、判断不出项目根、从子目录跑、submodule 形式、已被 add 成 gitlink、符号链接、--agents-md 越界、错误路径、门禁回归"
+      detail: "install.mjs 的常驻回归套件 /tmp/t/run.sh：21 组场景、67 项断言，最终 67 PASS / 0 FAIL；覆盖标准流程、幂等、末尾无换行的 AGENTS.md、GBK 的 AGENTS.md、只有 CLAUDE.md、三个开关、.gitignore、老位置 docs/、判断不出项目根、从子目录跑、submodule 形式、已被 add 成 gitlink、符号链接、--agents-md 越界、错误路径、门禁回归，以及第二轮加固新增的符号链接中间目录、祖先目录执行、刚建未 git init、项目根经符号链接、开关带值"
       location: "/tmp/t/run.sh（复核后重跑）"
     - type: log
       detail: "git rm -r --cached 对 gitlink 会以「staged content different from both the file and the HEAD」拒绝；必须 git rm -r -f --cached，实测恢复后 17 个文件全部 100644"
@@ -129,6 +130,11 @@ spec:
          · .git 是文件（submodule / worktree 形式）单独提示；索引里已经是 160000 时打印带 -f 的恢复命令
            （git rm -r -f --cached + git add，并提示清理 .gitmodules 登记）；
          · 顺序调整为先写约束块、后删 .git，写入失败不会留下「.git 已删但约束没写」的半成品。
+      5. 第二轮复核加固（最终修订）：把项目根与写入目标都做 realpath 之后再比包含关系 ——
+         --agents-md 的中间目录是符号链接时字符串检查看不出来，现在按真实落点拒绝越界；
+         站在规范的「祖先目录」（非直接父级）执行时不再默认往那个目录写 AGENTS.md
+         （除非该目录自己像项目根，或规范是它的直接子目录，避免误伤刚建还没 git init 的项目）；
+         开关不再接受 --dry-run=yes 这类带值写法。
     files:
       - "scripts/install.mjs（新增，约 310 行）"
       - "README.md（第一节目录说明与写法约定、第二节安装、公开仓库说明、三/四/八/十节命令前缀）"
@@ -146,7 +152,7 @@ spec:
       - "非 UTF-8 的 AGENTS.md 直接拒绝写入（复核建议的另一方案）—— 未采用：按字节追加可以做到零损坏，比整个跳过更有用；改为追加 + 明确提示"
       - "自动改写 .gitmodules / 自动 git rm --cached —— 否决：动用户的 git 登记属于高风险副作用，改为打印可直接复制的命令"
   regression_tests:
-    - "常驻套件：bash /tmp/t/run.sh —— 16 组场景 52 项断言，最终 52 PASS / 0 FAIL（命令见 verification.commands）"
+    - "常驻套件：bash /tmp/t/run.sh —— 21 组场景 67 项断言，最终 67 PASS / 0 FAIL（命令见 verification.commands）"
     - "标准流程：临时项目 git init + 自有 README.md/src → 模拟 clone 出 fluid-design-spec/（含 .git）→ install.mjs → 退出码 0、.git 消失、AGENTS.md 生成、项目文件哈希不变、根目录只多出规范目录与 AGENTS.md"
     - "进项目 git：git add -A && git ls-files -s fluid-design-spec 的 mode 列全为 100644，文件数与规范目录一致（17）"
     - "幂等：第二次跑打印「.git 已不存在，跳过」「已有规范约束块，跳过」，AGENTS.md 的 sha256 不变、标记数 = 1"
@@ -162,6 +168,10 @@ spec:
     - "AGENTS.md 是符号链接：退出码 0、项目外文件未被创建、打印跳过原因"
     - "--agents-md 越界（../escaped.md）：退出码 1、项目外未被写；--agents-md docs/RULES.md（父目录不存在）：自动创建父目录并写入"
     - "错误路径：非规范目录 → 退出码 1 且提示先 clone；未知参数 → 退出码 1 并打印用法；--help → 退出码 0；.gitignore 忽略规范目录 → 打印警告"
+    - "符号链接中间目录：项目里 ln -s <项目外目录> sub 后跑 --agents-md sub/AGENTS.md → 退出码 1、项目外未被写（套件 17）"
+    - "站在祖先目录执行：规范在 outer/mid/proj/fluid-design-spec、cwd=outer → 退出码 1、外层不生成 AGENTS.md，--root 指定后正常（套件 18）"
+    - "不误伤：刚建还没 git init 的项目（规范是其直接子目录）仍正常安装并提示「不是 git 仓库」（套件 19）；项目根经符号链接（macOS /tmp 这类）不误判拒绝（套件 20）"
+    - "开关带值：--dry-run=yes / --no-agents=1 → 退出码 1 并提示是开关（套件 21）"
     - "门禁回归：安装后的目录跑 node fluid-design-spec/scripts/brand.mjs check → 9 pass / 0 fail / 3 warn，退出码 0"
   acceptance_criteria:
     - "AC1 正常（公开仓库）：在任意目录执行 git clone --depth 1 https://github.com/kaijia323/fluid-design-spec.git <dir>，无需任何登录/token/Collaborator 即成功，退出码 0。"
@@ -173,10 +183,10 @@ spec:
     - "AC7 失败（错误路径可解释）：在不是规范目录的地方执行 install.mjs → 退出码 1 且提示先 git clone；未知参数 → 退出码 1 并打印用法；--help → 退出码 0。"
     - "AC8 回归（规范本体不受影响）：安装后的目录执行 node fluid-design-spec/scripts/brand.mjs check → 9 pass / 0 fail / 3 warn、退出码 0；README 中不再存在「本仓库私有」「安装位置 docs/fluid-design-spec」「让读者使用 gh repo clone」的表述（仅允许「不要用 gh repo clone」这类反向说明）。"
     - "AC9 边界（非 UTF-8 不损坏）：AGENTS.md 是 GBK 等非 UTF-8 时，追加后原文件字节逐字节不变（head -c <原大小> | cmp 通过），并打印编码提示。"
-    - "AC10 边界（不往不确定的位置写）：规范目录不在项目根、且项目根判断不出来时，install.mjs 退出码 1 且不在上层目录生成 AGENTS.md（--root 指定后正常）；AGENTS.md 是符号链接或 --agents-md 指到项目根外时拒绝写入（退出码 1 或跳过并说明），项目外文件不被创建。"
+    - "AC10 边界（不往不确定的位置写）：规范目录不在项目根、且项目根判断不出来时，install.mjs 退出码 1 且不在上层目录生成 AGENTS.md（站在规范的祖先目录里跑也一样拒绝，--root 指定后正常）；AGENTS.md 是符号链接、或 --agents-md 指到项目根外（含中间目录是符号链接、真实落点在根外）时拒绝写入（退出码 1 或跳过并说明），项目外文件不被创建；反过来，刚建还没 git init 的项目、以及项目根自身经符号链接的环境不得被误拒。"
     - "AC11 失败（索引已是子模块指针）：索引里 fluid-design-spec/ 已是 mode 160000 时，install.mjs 打印可复制的恢复命令（含 -f）；照做后 git ls-files -s 全部变为 100644。"
   verification:
-    result: "11/11 AC 通过；回归套件 16 组 52 项断言 52 PASS / 0 FAIL；文件以 100644 进项目 git；brand.mjs 门禁 9 pass / 0 fail / 3 warn"
+    result: "11/11 AC 通过（第二轮独立复核 @0778718 结论「可以交付」）；回归套件 21 组 67 项断言 67 PASS / 0 FAIL；文件以 100644 进项目 git；brand.mjs 门禁 9 pass / 0 fail / 3 warn"
     verified_by: self
     verifier: lead
     verified_at: "2026-09-25"
@@ -208,14 +218,14 @@ spec:
       - criterion: "AC#9 GBK 的 AGENTS.md 零损坏"
         status: pass
         evidence: "套件 4：GBK 文件追加后 head -c <原大小> | cmp 通过（修复前实测会被写成 U+FFFD），并打印「不是 UTF-8」提示"
-      - criterion: "AC#10 判断不出项目根 / 越界 / 符号链接时拒绝写入"
+      - criterion: "AC#10 判断不出项目根 / 越界 / 符号链接时拒绝写入（且不误伤）"
         status: pass
-        evidence: "套件 9：在无标记的上级目录里直接跑 → exit 1、/tmp/t9/AGENTS.md 未创建，--root 后正常；套件 13：符号链接 AGENTS.md → 跳过且项目外文件未创建；套件 14：--agents-md ../escaped.md → exit 1 且项目外未被写"
+        evidence: "套件 9/18：无标记上级目录、以及站在祖先目录执行 → 均 exit 1 且上层不生成 AGENTS.md，--root 后正常；套件 13/17：符号链接 AGENTS.md 跳过、--agents-md 穿过符号链接目录 → exit 1 且项目外未被写；套件 19/20：刚建未 git init 的项目与项目根经符号链接的环境均正常安装（不误拒）"
       - criterion: "AC#11 索引已是 160000 时给出可用恢复命令"
         status: pass
         evidence: "套件 11/12：submodule 形式与「先 add 成 gitlink」两种场景都打印含 -f 的恢复命令，照做后 mode 列全部 100644"
     commands:
-      - "bash /tmp/t/run.sh → 合计：52 PASS / 0 FAIL（exit 0）"
+      - "bash /tmp/t/run.sh → 合计：67 PASS / 0 FAIL（exit 0）"
       - "git ls-files -s fluid-design-spec → mode 列唯一值 100644，计数 17"
       - "node fluid-design-spec/scripts/brand.mjs check → 结果：9 pass / 0 fail / 3 warn（exit 0）"
       - "git rm -r -f --cached fluid-design-spec && git add fluid-design-spec → 100644（复现 /tmp/rec-a、/tmp/rec-b）"
@@ -224,13 +234,12 @@ spec:
       - "README.md 第二节"
       - "/tmp/t/run.sh（16 组 52 项断言的回归套件，未纳入仓库；见 F4）"
     unverified:
-      - "GitHub 远端 main 上的真实 clone + README 主路径 → 推送前无法验证（远端 scripts/ 里只有 brand.mjs）；推送后需在干净目录重跑一次"
-      - "最终修订（v1.1，加固后）尚未再经独立复核；独立复核针对的是加固前的修订（其 5 项发现已逐条修复并纳入套件 4/9/11/12/13/14 复测）"
+      - "第二轮加固（realpath / 祖先目录拒绝 / 开关带值）推送后的远端复验 → 本轮推送完成后需在干净目录再跑一次 README 主路径（初版 0778718 已复验：干净目录 clone → install → brand.mjs check 9/0/3、17 个文件 100644、AGENTS.md 标记数 1）"
   follow_ups:
-    - "F1（中）：本改动需推送到 GitHub main 后才对真实 clone 的人生效；推送后应在一个干净目录按 README 主路径完整跑一遍复验。"
+    - "F1（中）：初版已推送 0778718 并完成远端复验（干净目录 clone → install → brand.mjs check 9/0/3、17 个文件 100644、AGENTS.md 标记数 1）；第二轮加固推送后需再复验一次。"
     - "F2（低）：没有提供 npx / degit 一行安装（当前只有 git clone）；如后续要降低门槛可另开 feature。"
     - "F3（低）：install.mjs 不删除 clone 残留以外的任何文件；若用户多次换路径安装，旧目录需自行清理（无自动清理是有意为之）。"
-    - "F4（低）：install.mjs 没有像 brand.mjs selftest 那样的常驻自检，本次 16 组 52 项断言只存在于 /tmp/t/run.sh。建议后续补 scripts/install.selftest.sh 把它固定进仓库（改这个脚本前先跑它）。"
+    - "F4（低）：install.mjs 没有像 brand.mjs selftest 那样的常驻自检，本次 21 组 67 项断言只存在于 /tmp/t/run.sh。建议后续补 scripts/install.selftest.sh 把它固定进仓库（改这个脚本前先跑它），否则下次改动没有回归网。"
     - "F5（低，既有问题、非本次改动）：README 第三节写「预设要排在品牌默认值后面才生效」，但独立复核的浏览器实测显示两种引入顺序下 :root[data-brand] 都生效（选择器权重 0,2,0 > 0,1,0），而 brand.presets.css 头部注释仍写「顺序要正确」。建议单独一次改动把文档与注释统一。"
   failure_handling:
     - scenario: "网络原因 clone 失败"

@@ -86,11 +86,12 @@ function parseArgs(argv) {
       if (v === undefined || v.startsWith('--')) throw new Error(key + ' 需要一个值');
       return v;
     };
+    const flagOnly = () => { if (inlineVal !== null) throw new Error(key + ' 是开关，不带值（写成 ' + key + ' 就好）'); };
     if (key === '--root') opts.root = takeVal();
     else if (key === '--agents-md') opts.agentsMd = takeVal();
-    else if (key === '--no-agents') opts.noAgents = true;
-    else if (key === '--keep-git') opts.keepGit = true;
-    else if (key === '--dry-run') opts.dryRun = true;
+    else if (key === '--no-agents') { flagOnly(); opts.noAgents = true; }
+    else if (key === '--keep-git') { flagOnly(); opts.keepGit = true; }
+    else if (key === '--dry-run') { flagOnly(); opts.dryRun = true; }
     else throw new Error('不认识的参数：' + a);
   }
   return opts;
@@ -105,6 +106,23 @@ function statOrNull(p) { try { return fs.lstatSync(p); } catch { return null; } 
 function isFile(p) { const s = statOrNull(p); return !!s && s.isFile(); }
 
 function isDir(p) { const s = statOrNull(p); return !!s && s.isDirectory(); }
+
+function realOrNull(p) { try { return fs.realpathSync(p); } catch { return null; } }
+
+// 把路径解析成「真实路径」：逐级向上找到已存在的最深祖先做 realpath，再拼回还不存在的尾巴。
+// 这样中间目录是符号链接、最后一级是符号链接、路径还不存在这三种情况都能得到真实落点。
+function realResolve(p) {
+  let cur = path.resolve(p);
+  const rest = [];
+  for (;;) {
+    const real = realOrNull(cur);
+    if (real) return rest.length ? path.join(real, ...rest) : real;
+    const parent = path.dirname(cur);
+    if (parent === cur) return null;
+    rest.unshift(path.basename(cur));
+    cur = parent;
+  }
+}
 
 function countFiles(dir) {
   let n = 0;
@@ -158,8 +176,11 @@ function resolveProjectRoot(opts, specDir) {
   if (looksLikeProjectRoot(parent)) {
     return { root: parent, source: '规范目录的上一级（clone 的位置）' };
   }
+  // 当前目录兜底：要么它自己像个项目根，要么规范就是它的直接子目录（刚建、还没 git init 的项目）
   if (cwd !== specDir && isInside(cwd, specDir)) {
-    return { root: cwd, source: '当前目录' };
+    if (looksLikeProjectRoot(cwd) || path.dirname(specDir) === cwd) {
+      return { root: cwd, source: '当前目录' };
+    }
   }
   return { root: null, source: '', parent };
 }
@@ -254,6 +275,11 @@ function main() {
     console.error('\n✗ --agents-md 指到了项目根外面：' + agentsPath);
     console.error('  只允许写项目根目录里面的文件。');
     return 1;
+  } else if (opts.agentsMd && !isInside(realResolve(projectRoot) || projectRoot, realResolve(agentsPath) || agentsPath)) {
+    // 字符串检查过了，但中间目录是符号链接、实际落点在项目根外面
+    console.error('\n✗ --agents-md 经过符号链接指到了项目根外面：' + (realResolve(agentsPath) || agentsPath));
+    console.error('  真实落点不在 ' + (realResolve(projectRoot) || projectRoot) + ' 里面，已拒绝写入。');
+    return 1;
   } else {
     // 只读前 4KB 做标记判断，再决定候选文件
     const hasBlock = (p) => isFile(p) && fs.readFileSync(p).includes(Buffer.from(MARK_BEGIN, 'utf8'));
@@ -267,8 +293,13 @@ function main() {
         : (isFile(agentsPath) ? agentsPath : (isFile(claudePath) ? claudePath : agentsPath));
       const rel = toPosix(path.relative(projectRoot, agentsTarget));
       const st = statOrNull(agentsTarget);
+      const realRoot = realResolve(projectRoot) || projectRoot;
+      const realTarget = realResolve(agentsTarget) || agentsTarget;
 
-      if (st && st.isSymbolicLink()) {
+      if (!isInside(realRoot, realTarget)) {
+        console.log('· ✗ ' + rel + ' 的真实落点在项目根外面（' + realTarget + '），为避免写到项目外，已跳过');
+        agentsTarget = null;
+      } else if (st && st.isSymbolicLink()) {
         console.log('· ✗ ' + rel + ' 是符号链接，为避免写到项目外面，已跳过（要写就换真实文件：--agents-md <路径>；或加 --no-agents）');
         agentsTarget = null;
       } else if (st && st.isDirectory()) {
