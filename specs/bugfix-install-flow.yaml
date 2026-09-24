@@ -1,0 +1,266 @@
+spec:
+  type: bugfix
+  name: "修正安装流程：公开仓库 + 装到项目根目录 fluid-design-spec/ + 删 .git 让规范进用户项目 git + 写 AGENTS.md"
+  id: bugfix-install-flow
+  version: 5
+  updated: "2026-09-25"
+  status: done
+  blocked_reason: ""
+  status_log:
+    - date: "2026-09-25"
+      from: ready
+      to: in_progress
+      by: lead
+      version: 2
+      note: "安装契约已冻结：装到 <项目根>/fluid-design-spec/、删 .git、把带标记的约束块写进 AGENTS.md；开始实现 install.mjs 并重写 README 第二节"
+    - date: "2026-09-25"
+      from: in_progress
+      to: done
+      by: lead
+      version: 3
+      note: "install.mjs + README 第二节完成；8 组实测（正常/已有 AGENTS.md/只有 CLAUDE.md/dry-run/keep-git/gitignore/非规范目录/参数错误）全过，门禁无回归"
+    - date: "2026-09-25"
+      from: done
+      to: in_progress
+      by: lead
+      version: 4
+      note: "独立复核反馈 5 项（非 UTF-8 的 AGENTS.md 被写坏 / 项目根判断不出来时写错位置 / submodule 与 gitlink 恢复命令不可用 / 符号链接写到项目外 / --agents-md 越界），逐条加固为 install.mjs v1.1 并重建回归套件（16 组 52 项断言）"
+    - date: "2026-09-25"
+      from: in_progress
+      to: done
+      by: lead
+      version: 5
+      note: "5 项复核发现全部修复：agent 文件改按字节追加（GBK 零损坏）、项目根判不出来即拒绝执行、符号链接与越界路径拒绝写入、索引 160000 时打印含 -f 的恢复命令、先写块后删 .git；README 三/四/八/十节命令补 fluid-design-spec/ 前缀"
+  related:
+    - "仓库 https://github.com/kaijia323/fluid-design-spec —— 已由私有改为公开（用户 2026-09-25 告知，gh repo view 实测 visibility=PUBLIC）"
+    - "被修正的对象：提交 9f18efa「docs: README 新增安装章节（复制一句话给 AI 助手）+ 章节顺延重排」"
+    - "独立复核（subagent ac7d3736，2026-09-25）：AC1~AC7 全 pass；提出 3 个静默问题（非 UTF-8 的 AGENTS.md 被写坏 / 规范目录不在项目根时写错位置 / submodule 形式提示与事实不符）+ 2 个低危问题（符号链接写到项目外、--agents-md 无路径约束），已全部修复并复测"
+  severity: medium
+  symptom: |
+    用户照着 README 第二节安装，装出来的结果和期望不符，四处对不上：
+    (1) README 说「本仓库当前是私有（private）」，让助手跑 gh auth status 查权限、说给别人用要先加 Collaborator；
+        仓库其实已经公开，这段话把人往权限问题上带，也让自助安装的人以为自己没权限。
+    (2) 安装位置写死 docs/fluid-design-spec/，用户要的是装到项目根目录。
+    (3) 装完没有人删掉 clone 下来的 .git：项目里 git add 时整个规范目录被记成一个子模块指针
+        （mode 160000），规范文件一个都没进用户自己的仓库 —— 用户原话「安装成功后应该删除 .git 让当前的规范进入用户的项目 git 去」。
+    (4) 安装命令写的是 gh repo clone（要先装 gh 并登录），用户要求用更通用的 git clone。
+  context: |
+    规范本体是 Markdown + CSS 令牌 + 一个零依赖 Node 门禁脚本，没有构建步骤。
+    「安装」实质只有三件事：把仓库文件放进用户项目、去掉仓库自带的 .git、留一条「写界面前先读规范」的约束给 AI 助手。
+    旧 README 只写了前一半（clone），后两步靠读者自觉，于是第 (3) 条几乎必然发生。
+    本次把三步固定成一条命令 scripts/install.mjs，README 第二节按新流程重写。
+    安装位置、agent 文件选择这两件事已当面向用户确认（见 assumptions）。
+    独立复核后又加固了一轮：安装脚本的每一处写操作都必须「要么做对，要么明确报错」，不允许静默损坏用户既有内容。
+  assumptions:
+    - "安装位置 = 项目根目录下的一个文件夹 <项目根>/fluid-design-spec/（用户 2026-09-25 拍板，二选一里选了「根目录下建一个文件夹」）。整个仓库内容原样带过去；规范自己的 README.md 就在这个文件夹里，不会覆盖用户项目根目录的 README.md（用户原话：有啥冲突吗，规范的 readme 是在 fluidxxx 文件夹下面的啊）。"
+    - "约束块写进项目根目录的 AGENTS.md；没有 AGENTS.md 就新建，只有 CLAUDE.md 就写进 CLAUDE.md（用户 2026-09-25 拍板）。"
+    - "clone 下来的 .git 直接删除，不保留成 submodule（用户明确要求）。代价：以后不能 git pull 升级，README 给了「备份 brand.css → 重新 clone → 再跑 install.mjs」的更新流程。"
+    - "零依赖：install.mjs 只用 node 内置模块（fs / path / process / child_process / url），Node >= 18，与 scripts/brand.mjs 口径一致。"
+    - "只碰两处写入：项目根下的 AGENTS.md / CLAUDE.md（只追加或新建）、删 <规范目录>/.git。不动用户任何既有文件内容。"
+    - "宁可报错也不猜：判断不出项目根目录、目标路径越界、目标是符号链接或目录时，脚本停下来让人用 --root / --agents-md 明确指定，而不是挑一个默认值写下去。"
+  blocking_questions: []
+  open_questions:
+    - q: "这次改动要不要提交并推送到 GitHub main？"
+      status: answered
+      asked_at: "2026-09-25"
+      answer: "用户原话：「提交并推送」。理由：不推的话别人 clone 到的还是没有 install.mjs 的旧版，README 主路径在远端跑不通（复核实测：远端 main 的 scripts/ 里只有 brand.mjs）。"
+  environment:
+    version: "仓库 v2.0，main @ 9f18efa"
+    os: "Ubuntu Linux；git 2.43.0；Node v24.21.0"
+    runtime: "node >= 18（install.mjs / brand.mjs 均零依赖）"
+    account: "GitHub kaijia323，仓库 visibility=PUBLIC（不需要 token 即可匿名 clone）"
+    config: "安装目标 = <项目根>/fluid-design-spec/；约束块目标 = <项目根>/AGENTS.md"
+  reproduction:
+    steps:
+      - "按 9f18efa 版 README 第二节第 54 行执行：gh repo clone kaijia323/fluid-design-spec docs/fluid-design-spec（未登录 gh 的环境直接失败）"
+      - "即使换成 git clone 成功：保持 docs/fluid-design-spec/.git 不动"
+      - "在项目根目录 git add -A && git ls-files -s docs/fluid-design-spec | awk '{print $1}' | sort -u"
+    expected: "规范文件作为普通文件进用户自己的仓库（mode 100644，逐个文件可见）；位置在项目根目录下，不需要 gh 登录"
+    actual: "只有一行 mode 160000（子模块指针），规范文件 0 个进仓库；位置在 docs/ 下；README 还说是私有仓库"
+    frequency: always
+  evidence:
+    - type: file
+      detail: "旧 README 第 62 行：「本仓库当前是私有（private）……先让助手跑一次 gh auth status 看有没有权限」；第 43 / 48 / 54 / 55 / 58 行把安装位置写死为 docs/fluid-design-spec/；全文没有删除 .git 的步骤"
+      location: "README.md @ 9f18efa"
+    - type: log
+      detail: 'gh repo view kaijia323/fluid-design-spec --json visibility → visibility=PUBLIC，defaultBranchRef.name=main'
+      location: "本机终端"
+    - type: log
+      detail: "实测保留 .git 时：git ls-files -s fluid-design-spec 的 mode 列 → 160000（规范文件 0 个进仓库）；删掉 .git 后同一命令 → 全部 100644"
+      location: "/tmp/fds-a、/tmp/fds-e 临时项目"
+    - type: file
+      detail: "install.mjs 的常驻回归套件 /tmp/t/run.sh：16 组场景、52 项断言，最终 52 PASS / 0 FAIL；覆盖标准流程、幂等、末尾无换行的 AGENTS.md、GBK 的 AGENTS.md、只有 CLAUDE.md、三个开关、.gitignore、老位置 docs/、判断不出项目根、从子目录跑、submodule 形式、已被 add 成 gitlink、符号链接、--agents-md 越界、错误路径、门禁回归"
+      location: "/tmp/t/run.sh（复核后重跑）"
+    - type: log
+      detail: "git rm -r --cached 对 gitlink 会以「staged content different from both the file and the HEAD」拒绝；必须 git rm -r -f --cached，实测恢复后 17 个文件全部 100644"
+      location: "/tmp/rec-a、/tmp/rec-b"
+  scope:
+    affected:
+      - "README.md 第二节（安装）整体重写；第一节目录说明补 install.mjs 与安装位置；第三节、第四节、第八节、第十节的 brand.mjs 命令补 fluid-design-spec/ 前缀"
+      - "scripts/install.mjs（新增）"
+    not_affected:
+      - "tokens/ 全部文件、Design.md、DESIGN.mobile.md、DESIGN.web.md、fluid-design.skill.md、SOURCES.md 内容不动"
+      - "scripts/brand.mjs 的门禁逻辑与阈值不动（只跑回归）"
+      - "用户项目里的任何既有文件内容不动（agent 文件按字节追加）"
+  root_cause:
+    hypothesis: |
+      安装章节是在「仓库还是私有 + 安装位置按 docs/ 设想」的前提下写的，仓库转公开、用户改口径（装到项目根目录、
+      删 .git 让文件进自己的仓库）之后，这段说明与真实期望脱节；更关键的是缺一步不可跳过的动作（删 .git），
+      且没有任何可执行物把「删 .git + 写 AGENTS.md」固定下来，全靠读者自觉。
+    evidence: |
+      README @ 9f18efa：第 62 行仍写私有；第 43 / 54 行命令写死 docs/fluid-design-spec 且用 gh repo clone；
+      全文 grep 不到 rm -rf .git；实测保留 .git 时项目 git 只记录 160000。
+    confirmed: true
+  fix:
+    approach: |
+      1. 新增 scripts/install.mjs（零依赖、Node >= 18）：把带标记的规范约束块写进项目 AGENTS.md
+         （没有则新建；只有 CLAUDE.md 则写进 CLAUDE.md；重复跑靠标记幂等）→ 删掉 <规范目录>/.git →
+         打印下一步与两端读取组合；另带 --root / --agents-md / --no-agents / --keep-git / --dry-run / --help。
+      2. README 第二节重写为：git clone（公开仓库、不用 gh repo clone）→ node fluid-design-spec/scripts/install.mjs
+         → brand.mjs check；「核对三件事」写清位置、无 .git（不是 160000）、AGENTS.md 有约束块；
+         另补「更新到最新规范」流程（备份 brand.css → 重新 clone → install.mjs --no-agents）。
+      3. README 删除「本仓库当前是私有」整段，改为公开仓库说明 + 克隆失败排查（网络 / SSH）；
+         第三节 / 第四节 / 第八节 / 第十节的 brand.mjs 命令统一补 fluid-design-spec/ 前缀
+         （否则在项目根目录跑会找不到脚本，或误跑用户项目自己的 scripts/brand.mjs），并在第一节目录树后说明这条写法约定。
+      4. 复核后加固（v1.1，针对独立复核的 5 项发现）：
+         · agent 文件按字节读、按字节追加 —— 非 UTF-8（GBK 等）旧文件零损坏，并提示改存 UTF-8；
+         · 项目根判断不出来时拒绝执行（不再默认往规范目录上一级写），可用 --root 明确指定；
+         · agent 文件是符号链接 / 目标是目录 / --agents-md 指到项目根外 → 拒绝写入；
+         · .git 是文件（submodule / worktree 形式）单独提示；索引里已经是 160000 时打印带 -f 的恢复命令
+           （git rm -r -f --cached + git add，并提示清理 .gitmodules 登记）；
+         · 顺序调整为先写约束块、后删 .git，写入失败不会留下「.git 已删但约束没写」的半成品。
+    files:
+      - "scripts/install.mjs（新增，约 310 行）"
+      - "README.md（第一节目录说明与写法约定、第二节安装、公开仓库说明、三/四/八/十节命令前缀）"
+    constraints:
+      - "零依赖：只用 node 内置模块，不引入 npm 包"
+      - "不依赖 gh CLI，用通用 git clone"
+      - "绝不覆盖或重编码用户项目既有文件：agent 文件按字节追加"
+      - "不放松 scripts/brand.mjs 的任何门禁阈值"
+      - "宁可报错也不往不确定的位置写（判断不出项目根、路径越界、符号链接一律拒绝）"
+    alternatives_considered:
+      - "用 git submodule 代替删 .git —— 否决：用户要的是规范文件进自己的仓库，submodule 仍然只是一个指针"
+      - "用 curl 下 tarball（本来就不含 .git）—— 否决：用户指定用通用的 git clone；且 clone 后删 .git 对用户是可见可核对的动作"
+      - "把删 .git 交给 AI 助手按提示词人工执行 —— 否决：不可验收，漏了就退回原状（正是本次缺陷）"
+      - "把规范装到项目根目录直接铺开（不建文件夹）—— 否决：会和用户项目自己的 Design.md / scripts/ 撞名（用户也选了建文件夹）"
+      - "非 UTF-8 的 AGENTS.md 直接拒绝写入（复核建议的另一方案）—— 未采用：按字节追加可以做到零损坏，比整个跳过更有用；改为追加 + 明确提示"
+      - "自动改写 .gitmodules / 自动 git rm --cached —— 否决：动用户的 git 登记属于高风险副作用，改为打印可直接复制的命令"
+  regression_tests:
+    - "常驻套件：bash /tmp/t/run.sh —— 16 组场景 52 项断言，最终 52 PASS / 0 FAIL（命令见 verification.commands）"
+    - "标准流程：临时项目 git init + 自有 README.md/src → 模拟 clone 出 fluid-design-spec/（含 .git）→ install.mjs → 退出码 0、.git 消失、AGENTS.md 生成、项目文件哈希不变、根目录只多出规范目录与 AGENTS.md"
+    - "进项目 git：git add -A && git ls-files -s fluid-design-spec 的 mode 列全为 100644，文件数与规范目录一致（17）"
+    - "幂等：第二次跑打印「.git 已不存在，跳过」「已有规范约束块，跳过」，AGENTS.md 的 sha256 不变、标记数 = 1"
+    - "已有 AGENTS.md（末尾无换行）：head -c <原大小> AGENTS.md | cmp - 原件 → 前缀逐字节相同"
+    - "GBK 的 AGENTS.md：追加后同样 cmp 通过（原字节零损坏），并打印「不是 UTF-8」提示"
+    - "只有 CLAUDE.md：约束块写进 CLAUDE.md，不新建 AGENTS.md"
+    - "开关：--dry-run 全量哈希不变且不新建 AGENTS.md；--no-agents 删 .git 但不动 agent 文件；--keep-git 保留 .git 且实测索引为 160000（警告属实）"
+    - "老位置 docs/fluid-design-spec：从项目根跑 → AGENTS.md 落在项目根，docs/ 下不生成，日志注明根目录来源是「当前目录」"
+    - "判断不出项目根：在 <无 .git 的目录>/fluid-design-spec 里直接跑 → 退出码 1、不往上写 AGENTS.md；加 --root 后正常"
+    - "从子目录 src/deep 跑：按规范目录位置解析出项目根，AGENTS.md 落在项目根"
+    - "submodule 形式：.git 是文件 → 提示；索引 160000 → 打印恢复命令；照做（git rm -r -f --cached + git add）后全部 100644"
+    - "先被 git add 成 gitlink：同样打印恢复命令，照做后 100644"
+    - "AGENTS.md 是符号链接：退出码 0、项目外文件未被创建、打印跳过原因"
+    - "--agents-md 越界（../escaped.md）：退出码 1、项目外未被写；--agents-md docs/RULES.md（父目录不存在）：自动创建父目录并写入"
+    - "错误路径：非规范目录 → 退出码 1 且提示先 clone；未知参数 → 退出码 1 并打印用法；--help → 退出码 0；.gitignore 忽略规范目录 → 打印警告"
+    - "门禁回归：安装后的目录跑 node fluid-design-spec/scripts/brand.mjs check → 9 pass / 0 fail / 3 warn，退出码 0"
+  acceptance_criteria:
+    - "AC1 正常（公开仓库）：在任意目录执行 git clone --depth 1 https://github.com/kaijia323/fluid-design-spec.git <dir>，无需任何登录/token/Collaborator 即成功，退出码 0。"
+    - "AC2 正常（落位）：在项目根目录执行 git clone … fluid-design-spec 后，规范位于 <项目根>/fluid-design-spec/；安装后项目根目录只多出 fluid-design-spec/ 与 AGENTS.md，用户项目原有的 README.md 等文件内容逐字节不变。"
+    - "AC3 正常（进项目 git）：node fluid-design-spec/scripts/install.mjs 退出码 0；执行后 fluid-design-spec/.git 不存在；项目里 git add -A 后 git ls-files -s fluid-design-spec 全部为 100644（不出现 160000），文件数与规范目录里的文件数一致。"
+    - "AC4 正常（约束生效）：项目根 AGENTS.md 出现 <!-- fluid-design-spec:begin --> … <!-- fluid-design-spec:end --> 块，块内含移动端/Web 两端读取组合、--color-on-accent 规则、brand.mjs derive / check 命令。"
+    - "AC5 边界（不破坏既有内容 / 幂等）：已有 AGENTS.md 的项目，用户原内容逐字节保留且块追加在其后；同一个项目重复跑第二次不再追加（标记出现次数 = 1）；只有 CLAUDE.md 没有 AGENTS.md 的项目，块写进 CLAUDE.md。"
+    - "AC6 边界（开关）：--dry-run 后 fluid-design-spec/.git 仍存在且 AGENTS.md 未创建；--no-agents 不创建也不修改任何 agent 文件；--keep-git 保留 .git，并明确警告项目 git 会记成 160000 子模块指针。"
+    - "AC7 失败（错误路径可解释）：在不是规范目录的地方执行 install.mjs → 退出码 1 且提示先 git clone；未知参数 → 退出码 1 并打印用法；--help → 退出码 0。"
+    - "AC8 回归（规范本体不受影响）：安装后的目录执行 node fluid-design-spec/scripts/brand.mjs check → 9 pass / 0 fail / 3 warn、退出码 0；README 中不再存在「本仓库私有」「安装位置 docs/fluid-design-spec」「让读者使用 gh repo clone」的表述（仅允许「不要用 gh repo clone」这类反向说明）。"
+    - "AC9 边界（非 UTF-8 不损坏）：AGENTS.md 是 GBK 等非 UTF-8 时，追加后原文件字节逐字节不变（head -c <原大小> | cmp 通过），并打印编码提示。"
+    - "AC10 边界（不往不确定的位置写）：规范目录不在项目根、且项目根判断不出来时，install.mjs 退出码 1 且不在上层目录生成 AGENTS.md（--root 指定后正常）；AGENTS.md 是符号链接或 --agents-md 指到项目根外时拒绝写入（退出码 1 或跳过并说明），项目外文件不被创建。"
+    - "AC11 失败（索引已是子模块指针）：索引里 fluid-design-spec/ 已是 mode 160000 时，install.mjs 打印可复制的恢复命令（含 -f）；照做后 git ls-files -s 全部变为 100644。"
+  verification:
+    result: "11/11 AC 通过；回归套件 16 组 52 项断言 52 PASS / 0 FAIL；文件以 100644 进项目 git；brand.mjs 门禁 9 pass / 0 fail / 3 warn"
+    verified_by: self
+    verifier: lead
+    verified_at: "2026-09-25"
+    acceptance:
+      - criterion: "AC#1 匿名 clone 公开仓库成功"
+        status: pass
+        evidence: "git clone --depth 1 https://github.com/kaijia323/fluid-design-spec.git fluid-design-spec → 成功，无任何登录提示（GIT_TERMINAL_PROMPT=0；独立复核还用 env -i 清空 HOME 复现过）"
+      - criterion: "AC#2 落位项目根目录且不动用户文件"
+        status: pass
+        evidence: "套件 1：安装后根目录只有 README.md、src、AGENTS.md、fluid-design-spec；README.md 与 src/app.js 的 sha256 组合前后一致"
+      - criterion: "AC#3 删 .git 后文件逐个进项目 git"
+        status: pass
+        evidence: "套件 1：git ls-files -s fluid-design-spec 的 mode 列唯一值为 100644；git ls-files 计数 = 规范目录文件数（17）"
+      - criterion: "AC#4 AGENTS.md 约束块内容完整"
+        status: pass
+        evidence: "套件 1/2：标记 1 组，块含两端读取组合、--color-on-accent、brand.mjs derive/check；重复跑标记数仍为 1"
+      - criterion: "AC#5 追加不破坏内容 + 幂等 + CLAUDE.md 兜底"
+        status: pass
+        evidence: "套件 3：末尾无换行的 AGENTS.md 前缀 cmp 通过；套件 5：只有 CLAUDE.md 时写进 CLAUDE.md 且不新建 AGENTS.md"
+      - criterion: "AC#6 dry-run / no-agents / keep-git"
+        status: pass
+        evidence: "套件 6：dry-run 后 .git 仍在、AGENTS.md 未创建；no-agents 删 .git 且不写 agent 文件；keep-git 保留 .git 并打印 160000 警告"
+      - criterion: "AC#7 错误路径退出码正确"
+        status: pass
+        evidence: "套件 15：非规范目录 exit 1 并提示先 clone；--nope exit 1 带用法；--help exit 0；套件 7：.gitignore 忽略时打印警告"
+      - criterion: "AC#8 门禁回归 + README 口径"
+        status: pass
+        evidence: "套件 16：brand.mjs check → 9 pass / 0 fail / 3 warn（exit 0）；README 里「私有 / docs/fluid-design-spec 作为安装位置 / 让读者用 gh repo clone」已清零，仅剩「不要用 gh repo clone」的反向说明；三/四/八/十节命令已补 fluid-design-spec/ 前缀"
+      - criterion: "AC#9 GBK 的 AGENTS.md 零损坏"
+        status: pass
+        evidence: "套件 4：GBK 文件追加后 head -c <原大小> | cmp 通过（修复前实测会被写成 U+FFFD），并打印「不是 UTF-8」提示"
+      - criterion: "AC#10 判断不出项目根 / 越界 / 符号链接时拒绝写入"
+        status: pass
+        evidence: "套件 9：在无标记的上级目录里直接跑 → exit 1、/tmp/t9/AGENTS.md 未创建，--root 后正常；套件 13：符号链接 AGENTS.md → 跳过且项目外文件未创建；套件 14：--agents-md ../escaped.md → exit 1 且项目外未被写"
+      - criterion: "AC#11 索引已是 160000 时给出可用恢复命令"
+        status: pass
+        evidence: "套件 11/12：submodule 形式与「先 add 成 gitlink」两种场景都打印含 -f 的恢复命令，照做后 mode 列全部 100644"
+    commands:
+      - "bash /tmp/t/run.sh → 合计：52 PASS / 0 FAIL（exit 0）"
+      - "git ls-files -s fluid-design-spec → mode 列唯一值 100644，计数 17"
+      - "node fluid-design-spec/scripts/brand.mjs check → 结果：9 pass / 0 fail / 3 warn（exit 0）"
+      - "git rm -r -f --cached fluid-design-spec && git add fluid-design-spec → 100644（复现 /tmp/rec-a、/tmp/rec-b）"
+    artifacts:
+      - "scripts/install.mjs"
+      - "README.md 第二节"
+      - "/tmp/t/run.sh（16 组 52 项断言的回归套件，未纳入仓库；见 F4）"
+    unverified:
+      - "GitHub 远端 main 上的真实 clone + README 主路径 → 推送前无法验证（远端 scripts/ 里只有 brand.mjs）；推送后需在干净目录重跑一次"
+      - "最终修订（v1.1，加固后）尚未再经独立复核；独立复核针对的是加固前的修订（其 5 项发现已逐条修复并纳入套件 4/9/11/12/13/14 复测）"
+  follow_ups:
+    - "F1（中）：本改动需推送到 GitHub main 后才对真实 clone 的人生效；推送后应在一个干净目录按 README 主路径完整跑一遍复验。"
+    - "F2（低）：没有提供 npx / degit 一行安装（当前只有 git clone）；如后续要降低门槛可另开 feature。"
+    - "F3（低）：install.mjs 不删除 clone 残留以外的任何文件；若用户多次换路径安装，旧目录需自行清理（无自动清理是有意为之）。"
+    - "F4（低）：install.mjs 没有像 brand.mjs selftest 那样的常驻自检，本次 16 组 52 项断言只存在于 /tmp/t/run.sh。建议后续补 scripts/install.selftest.sh 把它固定进仓库（改这个脚本前先跑它）。"
+    - "F5（低，既有问题、非本次改动）：README 第三节写「预设要排在品牌默认值后面才生效」，但独立复核的浏览器实测显示两种引入顺序下 :root[data-brand] 都生效（选择器权重 0,2,0 > 0,1,0），而 brand.presets.css 头部注释仍写「顺序要正确」。建议单独一次改动把文档与注释统一。"
+  failure_handling:
+    - scenario: "网络原因 clone 失败"
+      handling: "README 给出排查方向：换 SSH 地址 git@github.com:kaijia323/fluid-design-spec.git；仓库为公开仓库，与权限无关。"
+    - scenario: "判断不出项目根目录（规范目录上一级不是 git 仓库、也没有 AGENTS.md/CLAUDE.md，当前目录也不在规范目录之上）"
+      handling: "install.mjs 退出码 1，打印两条出路：在项目根目录执行，或用 --root <项目根>；只想删 .git 可加 --no-agents。不会挑默认值往上层写。"
+    - scenario: "安装目录里没有 .git（重复安装或已手工删除）"
+      handling: "install.mjs 打印「.git 已不存在，跳过」并继续后续步骤，退出码仍为 0。"
+    - scenario: "删除 .git 失败（权限不足）"
+      handling: "install.mjs 打印失败原因与「rm -rf fluid-design-spec/.git」的手动命令，退出码 1。此时约束块已写好（顺序：先写块、后删 .git），不会留下半成品。"
+    - scenario: "写 AGENTS.md 失败（只读文件、目标是目录等）"
+      handling: "打印失败原因并提示可用 --no-agents 跳过，由人工把约束写进去，退出码 1；此时 .git 尚未删除，重跑即可。"
+    - scenario: "AGENTS.md 是符号链接"
+      handling: "跳过写入并说明原因（避免写到项目外面），其余步骤照常，退出码 0；要写就换真实文件或 --agents-md 指定。"
+    - scenario: "AGENTS.md 不是 UTF-8（GBK 等）"
+      handling: "按字节追加，原有字节一个不改；打印提示建议把该文件另存为 UTF-8。"
+    - scenario: "索引里 fluid-design-spec/ 已经是子模块指针（mode 160000）"
+      handling: "打印可直接复制的恢复命令 git rm -r -f --cached <路径> + git add <路径>（少了 -f 会被 git 拒绝），有 .gitmodules 时再补一条去掉登记的命令。"
+    - scenario: "项目 .gitignore 忽略了 fluid-design-spec/"
+      handling: "install.mjs 打印警告：git add 收不到规范文件，需先在 .gitignore 放行（不自动改用户的 .gitignore）。"
+    - scenario: "用户只想看规范、不打算提交进项目"
+      handling: "加 --keep-git 保留 .git，并明确警告项目 git 只会记录 160000 子模块指针。"
+  examples:
+    - input: "在一个已有 git 仓库的项目根目录执行：git clone --depth 1 https://github.com/kaijia323/fluid-design-spec.git fluid-design-spec && node fluid-design-spec/scripts/install.mjs"
+      output: "退出码 0；项目根多出 fluid-design-spec/（无 .git）与 AGENTS.md（含带标记的规范约束块）；终端打印下一步 git add 命令、换品牌与体检命令、两端读取组合。"
+    - input: "重复执行同一条 install.mjs"
+      output: "打印「· fluid-design-spec/.git 已不存在，跳过」「· AGENTS.md 里已有规范约束块，跳过」，AGENTS.md 内容不变（标记数仍为 1），退出码 0。"
+    - input: "node fluid-design-spec/scripts/install.mjs --dry-run（在未安装的项目里）"
+      output: "打印「[dry-run] 将把规范约束块写进 AGENTS.md（新建）」「[dry-run] 将删除 fluid-design-spec/.git」，磁盘不做任何改动，退出码 0。"
+    - input: "在 <无 .git / 无 AGENTS.md 的目录>/fluid-design-spec 里直接执行 node scripts/install.mjs"
+      output: "退出码 1：「判断不出你的项目根目录……」，并给出「在项目根目录执行」或「--root <你的项目根>」两条出路；上层目录不会多出 AGENTS.md。"
+    - input: "项目里 fluid-design-spec/ 已被 git add 成子模块指针，然后执行 install.mjs"
+      output: "删除 .git 后额外打印：索引里还是 160000，执行 git rm -r -f --cached fluid-design-spec 与 git add fluid-design-spec；照做后 17 个文件全部以 100644 进仓库。"

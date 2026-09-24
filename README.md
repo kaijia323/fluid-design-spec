@@ -17,6 +17,8 @@
 
 ## 一、目录说明
 
+装进项目后长这样（`<你的项目>/fluid-design-spec/`）：
+
 ```
 fluid-design-spec/
 ├── README.md                 # 本文件：怎么用这套规范
@@ -31,40 +33,59 @@ fluid-design-spec/
 │   ├── tokens.css            # 全局层 + 语义层 + 组件层（引 brand.css）
 │   └── tailwind.preset.js    # Tailwind theme.extend 预设
 ├── scripts/
+│   ├── install.mjs           # 装进项目：删 .git + 把规范约束块写进项目 AGENTS.md
 │   └── brand.mjs             # 换品牌门禁：derive 生成派生值 / check 体检 / selftest 自检
 └── specs/                    # 本仓库自己的任务规格（spec-builder 产物）
 ```
+
+> **下文路径与命令的写法**：命令都站在**项目根目录**执行，所以带 `fluid-design-spec/` 前缀（例如 `node fluid-design-spec/scripts/brand.mjs check`）；正文里单独提到的 `tokens/brand.css`、`Design.md` 这类文件，都在规范目录里面。在规范仓库里直接操作时，命令去掉 `fluid-design-spec/` 前缀即可。
 
 ## 二、安装（复制一句话给你的 AI 助手）
 
 **最快路径**：把下面这段整段复制，粘进你的 AI 助手（Claude Code / Codex / Cursor / DSH 都行）的对话框，回车即可。
 
 ```
-把流体设计规范装进当前项目：用 gh repo clone kaijia323/fluid-design-spec docs/fluid-design-spec 克隆下来（私有仓库，走已登录的 gh 或 SSH），再把「写界面前先声明遵循流体设计规范、写完按各文件末尾的自查清单验收、品牌色只改 tokens/brand.css」记进项目的 AGENTS.md / CLAUDE.md，最后告诉我移动端和 Web 端各该读哪几个文件。
+把流体设计规范装进当前项目：在项目根目录跑 git clone --depth 1 https://github.com/kaijia323/fluid-design-spec.git fluid-design-spec（公开仓库，用通用的 git clone，不要用 gh repo clone），再跑 node fluid-design-spec/scripts/install.mjs —— 它会删掉 fluid-design-spec/.git（不删的话我的项目 git 只会把整个文件夹记成一个子模块指针，规范文件进不了我自己的仓库），并把「写界面前先读规范、写完按各文件末尾的自查清单验收、品牌色只改 tokens/brand.css」写进项目的 AGENTS.md，最后告诉我移动端和 Web 端各该读哪几个文件。
 ```
 
-**它做完你只需要核对两件事**
+**它做完你只需要核对三件事**
 
-1. 仓库是不是落在 `docs/fluid-design-spec/`（位置你说了算，在那一句话里改掉就行）；
-2. 它有没有说清读取组合：移动端 = `Design.md` + `fluid-design.skill.md` + `DESIGN.mobile.md`；Web / B 端 = `Design.md` + `fluid-design.skill.md` + `DESIGN.web.md`。
+1. 规范落在**项目根目录下的 `fluid-design-spec/`** —— 根目录只多出这一个文件夹，别的地方没动（你项目自己的 `README.md`、`scripts/` 都不会被覆盖）；
+2. `fluid-design-spec/` 里**没有 `.git`**：`git add fluid-design-spec` 之后再看 `git status`，是一行行文件，不是一行 `160000` 的子模块指针；
+3. 项目根目录的 `AGENTS.md` 里多了「流体设计规范」一节，读取组合写清楚了：移动端 = `Design.md` + `fluid-design.skill.md` + `DESIGN.mobile.md`；Web / B 端 = `Design.md` + `fluid-design.skill.md` + `DESIGN.web.md`。
 
-**不想用一句话，两条命令也行**
+**不想用一句话，三条命令也行**（都在项目根目录执行）
 
 ```bash
-gh repo clone kaijia323/fluid-design-spec docs/fluid-design-spec   # 或 git clone git@github.com:kaijia323/fluid-design-spec.git docs/fluid-design-spec
-node docs/fluid-design-spec/scripts/brand.mjs check                # 体检，默认配置应当 9 pass / 0 fail / 3 warn
+git clone --depth 1 https://github.com/kaijia323/fluid-design-spec.git fluid-design-spec   # 公开仓库，不需要登录
+node fluid-design-spec/scripts/install.mjs                                                 # 删 .git + 写 AGENTS.md + 打印下一步
+node fluid-design-spec/scripts/brand.mjs check                                             # 体检，默认配置应当 9 pass / 0 fail / 3 warn
 ```
 
-克隆完把 `docs/fluid-design-spec/tokens/tokens.css` 引进项目就能用；换品牌只改同目录的 `brand.css`，Tailwind 项目直接引 `tailwind.preset.js`。
+`install.mjs` 就干两件事：**把规范约束块写进项目的 `AGENTS.md`**（没有 `AGENTS.md` 就新建；没有 `AGENTS.md` 但有 `CLAUDE.md` 就写进 `CLAUDE.md`；块首尾带标记，重复跑不会写两遍），**删掉 `fluid-design-spec/.git`**。写之前会先判断你的项目根目录，判断不出来就报错让你用 `--root` 指定，不会往错的地方写。
+
+它只碰这两个地方：项目根下的 `AGENTS.md` / `CLAUDE.md`、`<规范目录>/.git`；你项目里其它文件一个都不动（已有的 `AGENTS.md` 是按字节追加，非 UTF-8 的旧文件也不会被写坏）。不想让它碰 agent 文件加 `--no-agents`，想先看它要干什么加 `--dry-run`，只想看规范、不打算提交进项目就加 `--keep-git`（保留 `.git`，代价是项目 git 只会记一个子模块指针）。
+
+装完把 `fluid-design-spec/tokens/tokens.css` 引进项目就能用；换品牌只改同目录的 `brand.css`，Tailwind 项目直接引 `tailwind.preset.js`。
 
 **可选：装成全局 skill**（Claude Code 这类支持 skills 的助手）——把仓库放到 `~/.claude/skills/fluid-design/`，再把 `fluid-design.skill.md` 复制成 `~/.claude/skills/fluid-design/SKILL.md`，之后任何项目里说一句「按流体设计规范来」就能触发，不用每个项目重复克隆。
 
-> **注意：本仓库当前是私有（private）**。你和已登录的助手能克隆；给别人用要先在 GitHub 加 Collaborator，否则对方会报 `could not read Username`。克隆失败时，先让助手跑一次 `gh auth status` 看有没有权限。
+> **仓库是公开的（public）**：`git clone`、浏览器点 Code → Download ZIP 都行，不需要登录、不需要加 Collaborator。命令统一用通用的 `git clone`，不用 `gh repo clone`（那要先装并登录 gh，没必要）。克隆失败基本是网络问题，可以换 SSH：`git@github.com:kaijia323/fluid-design-spec.git`。
+
+**更新到最新规范**（规范目录里的 `.git` 已经删了，不能 `git pull`）
+
+```bash
+cp fluid-design-spec/tokens/brand.css /tmp/brand.css.bak   # 1. 先备份你改过的品牌色
+rm -rf fluid-design-spec                                   # 2. 整个换掉
+git clone --depth 1 https://github.com/kaijia323/fluid-design-spec.git fluid-design-spec
+node fluid-design-spec/scripts/install.mjs --no-agents     # 3. 删 .git；约束块 AGENTS.md 里已经有了，不用重写
+cp /tmp/brand.css.bak fluid-design-spec/tokens/brand.css   # 4. 放回你的品牌色
+```
 
 ## 三、上手四步
 
 1. **先定品牌色**（只有这一步跟项目有关）
-   - 有品牌色：改 `tokens/brand.css` 的 `--brand-accent`（可选再改 `--brand-accent-2`），跑 `node scripts/brand.mjs derive '#你的色值'` 覆盖派生段；
+   - 有品牌色：改 `tokens/brand.css` 的 `--brand-accent`（可选再改 `--brand-accent-2`），跑 `node fluid-design-spec/scripts/brand.mjs derive '#你的色值'` 覆盖派生段；
    - 没品牌色：直接用默认日出蓝，什么都不用改；
    - 想看看换色长什么样：`tokens/brand.presets.css` 里有 3 个预设（`ink-green` / `magenta` / `teal`），给 `<html data-brand="ink-green">` 就能切换。
      **引入顺序**：`tokens.css` → `brand.presets.css`（预设要排在品牌默认值后面才生效）。
@@ -72,7 +93,7 @@ node docs/fluid-design-spec/scripts/brand.mjs check                # 体检，�
    - 生成移动端：`Design.md` + `fluid-design.skill.md` + `DESIGN.mobile.md`
    - 生成 Web / B 端：`Design.md` + `fluid-design.skill.md` + `DESIGN.web.md`
 3. **生成前先声明**：「我将遵循 Design.md 的规范生成代码。」
-4. **生成后自查**：对照各文件末尾的自查清单（硬编码颜色、漏交互态、动效时长越界、反模式元素），并跑一次 `node scripts/brand.mjs check`。
+4. **生成后自查**：对照各文件末尾的自查清单（硬编码颜色、漏交互态、动效时长越界、反模式元素），并跑一次 `node fluid-design-spec/scripts/brand.mjs check`。
 
 ## 四、换品牌（v2.0 新增）
 
@@ -81,12 +102,12 @@ node docs/fluid-design-spec/scripts/brand.mjs check                # 体检，�
 **五步法**
 
 1. **填 2 个输入**：`--brand-accent`（品牌主色）、`--brand-accent-2`（第二强调色，可不改）。
-2. **生成派生值**：`node scripts/brand.mjs derive '#0e7a5f'`，把输出粘进 `@brand-derived` 段。hover / 按下 / 暗色提亮 / 按钮文字色都由算法算，不要手写。
-3. **过门禁**：`node scripts/brand.mjs check` —— 对比度、交互态可辨性、状态色撞色、令牌引用完整性、预设体检，全 pass 才算换完。
+2. **生成派生值**：`node fluid-design-spec/scripts/brand.mjs derive '#0e7a5f'`，把输出粘进 `@brand-derived` 段。hover / 按下 / 暗色提亮 / 按钮文字色都由算法算，不要手写。
+3. **过门禁**：`node fluid-design-spec/scripts/brand.mjs check` —— 对比度、交互态可辨性、状态色撞色、令牌引用完整性、预设体检，全 pass 才算换完。
 4. **明暗各看一眼**：明色看按钮白字，暗色看提亮主色与焦点环。
 5. **提交**：只提交 `tokens/brand.css`（以及可选的 presets）。
 
-**门禁一览**（`node scripts/brand.mjs check`）
+**门禁一览**（`node fluid-design-spec/scripts/brand.mjs check`）
 
 | 编号 | 查什么 | 阈值 |
 |---|---|---|
@@ -145,7 +166,7 @@ node docs/fluid-design-spec/scripts/brand.mjs check                # 体检，�
 | `--color-accent`（日落橘） | `--color-accent-2` | 颜色不变，旧名保留为别名 |
 | —— | `--color-on-accent` / `--color-on-accent-2` | 新增：主色块上的文字色，别再写 `#fff` |
 
-数值上有一处**可见但很小**的变化：`--brand-accent-hover` `#3D82FF → #2C7CFF`、`--brand-accent-bright` `#5B93FF → #4FA0FF`。原因是 v2.0 的默认值必须等于 `node scripts/brand.mjs derive '#1A6BFF'` 的输出，否则默认预设自己就过不了门禁。
+数值上有一处**可见但很小**的变化：`--brand-accent-hover` `#3D82FF → #2C7CFF`、`--brand-accent-bright` `#5B93FF → #4FA0FF`。原因是 v2.0 的默认值必须等于 `node fluid-design-spec/scripts/brand.mjs derive '#1A6BFF'` 的输出，否则默认预设自己就过不了门禁。
 
 ## 九、未包含的内容
 
@@ -158,6 +179,6 @@ node docs/fluid-design-spec/scripts/brand.mjs check                # 体检，�
 
 ## 十、维护方式
 
-改规范 = 同时改文档和 `tokens/` 里的令牌，两者必须一致；改完跑一次 `node scripts/brand.mjs check`（它会顺手检查令牌引用有没有断）。
+改规范 = 同时改文档和 `tokens/` 里的令牌，两者必须一致；改完跑一次 `node fluid-design-spec/scripts/brand.mjs check`（它会顺手检查令牌引用有没有断）。
 建议流程：先用一个页面跑一遍 → 看偏差 → 在对应文件的组件章节加粗标注修补 → 更新自查清单 → 迭代令牌。
 品牌色这块只有 `tokens/brand.css` 会被项目方改动，规范侧的改动不要写进那个文件。
