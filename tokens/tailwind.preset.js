@@ -1,6 +1,6 @@
 /**
  * 流体设计 · Tailwind 预设
- * 版本 v1.0 ｜ 配套文档：../Design.md
+ * 版本 v1.1 ｜ 配套文档：../Design.md、../SOURCES.md
  *
  * 用法（Tailwind v3，tailwind.config.js）：
  *   const fluid = require('./tokens/tailwind.preset.js');

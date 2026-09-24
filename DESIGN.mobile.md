@@ -3,6 +3,7 @@
 > 适用范围：手机端 App / H5（375px 起设计，暗色优先）。
 > 前置必读：`Design.md`（共享令牌）+ `fluid-design.skill.md`（动态行为）。
 > 冲突裁决：本文件 > `fluid-design.skill.md` > `Design.md`。共享内容不在这里重复。
+> 口径：本文件的具体数值（圆角 / 时长 / 缓动 / 断点）为工程自拟取值，OPPO 未公开发布过；官方口径与出处见 `SOURCES.md`。
 
 ---
 
