@@ -2,9 +2,9 @@ spec:
   type: bugfix
   name: "修正安装流程：公开仓库 + 装到项目根目录 fluid-design-spec/ + 删 .git 让规范进用户项目 git + 写 AGENTS.md"
   id: bugfix-install-flow
-  version: 5
+  version: 6
   updated: "2026-09-25"
-  status: done
+  status: verified
   blocked_reason: ""
   status_log:
     - date: "2026-09-25"
@@ -31,6 +31,12 @@ spec:
       by: lead
       version: 5
       note: "5 项复核发现全部修复：agent 文件改按字节追加（GBK 零损坏）、项目根判不出来即拒绝执行、符号链接与越界路径拒绝写入、索引 160000 时打印含 -f 的恢复命令、先写块后删 .git；README 三/四/八/十节命令补 fluid-design-spec/ 前缀"
+    - date: "2026-09-25"
+      from: done
+      to: verified
+      by: kaijia
+      version: 6
+      note: "第三轮独立复核 @fb0dd1b：V1~V7 全过（远端 clone/标准流程/三处加固/不误伤/回归抽查）、结论「可以交付」；V8 挖出的 bind mount 与硬链接越界需额外前提，已记入 F6"
   related:
     - "仓库 https://github.com/kaijia323/fluid-design-spec —— 已由私有改为公开（用户 2026-09-25 告知，gh repo view 实测 visibility=PUBLIC）"
     - "被修正的对象：提交 9f18efa「docs: README 新增安装章节（复制一句话给 AI 助手）+ 章节顺延重排」"
@@ -186,9 +192,9 @@ spec:
     - "AC10 边界（不往不确定的位置写）：规范目录不在项目根、且项目根判断不出来时，install.mjs 退出码 1 且不在上层目录生成 AGENTS.md（站在规范的祖先目录里跑也一样拒绝，--root 指定后正常）；AGENTS.md 是符号链接、或 --agents-md 指到项目根外（含中间目录是符号链接、真实落点在根外）时拒绝写入（退出码 1 或跳过并说明），项目外文件不被创建；反过来，刚建还没 git init 的项目、以及项目根自身经符号链接的环境不得被误拒。"
     - "AC11 失败（索引已是子模块指针）：索引里 fluid-design-spec/ 已是 mode 160000 时，install.mjs 打印可复制的恢复命令（含 -f）；照做后 git ls-files -s 全部变为 100644。"
   verification:
-    result: "11/11 AC 通过（第二轮独立复核 @0778718 结论「可以交付」）；回归套件 21 组 67 项断言 67 PASS / 0 FAIL；文件以 100644 进项目 git；brand.mjs 门禁 9 pass / 0 fail / 3 warn"
-    verified_by: self
-    verifier: lead
+    result: "11/11 AC 通过；独立复核 @fb0dd1b 结论「可以交付」；本机套件 21 组 67 项断言 67 PASS / 0 FAIL；远端复验 17 个文件 100644、brand.mjs 9 pass / 0 fail / 3 warn"
+    verified_by: independent
+    verifier: "subagent 复核 @fb0dd1b"
     verified_at: "2026-09-25"
     acceptance:
       - criterion: "AC#1 匿名 clone 公开仓库成功"
@@ -234,12 +240,13 @@ spec:
       - "README.md 第二节"
       - "/tmp/t/run.sh（16 组 52 项断言的回归套件，未纳入仓库；见 F4）"
     unverified:
-      - "第二轮加固（realpath / 祖先目录拒绝 / 开关带值）推送后的远端复验 → 本轮推送完成后需在干净目录再跑一次 README 主路径（初版 0778718 已复验：干净目录 clone → install → brand.mjs check 9/0/3、17 个文件 100644、AGENTS.md 标记数 1）"
+      - "第三轮独立复核（@fb0dd1b）的 V8 反例：bind mount 与硬链接两条越界未修复（需要额外前提，见 F6 P1/P2），P3/P4 两条行为瑕疵未打磨 —— 不影响 V1~V7 全过与「可以交付」结论"
   follow_ups:
     - "F1（中）：初版已推送 0778718 并完成远端复验（干净目录 clone → install → brand.mjs check 9/0/3、17 个文件 100644、AGENTS.md 标记数 1）；第二轮加固推送后需再复验一次。"
     - "F2（低）：没有提供 npx / degit 一行安装（当前只有 git clone）；如后续要降低门槛可另开 feature。"
     - "F3（低）：install.mjs 不删除 clone 残留以外的任何文件；若用户多次换路径安装，旧目录需自行清理（无自动清理是有意为之）。"
     - "F4（低）：install.mjs 没有像 brand.mjs selftest 那样的常驻自检，本次 21 组 67 项断言只存在于 /tmp/t/run.sh。建议后续补 scripts/install.selftest.sh 把它固定进仓库（改这个脚本前先跑它），否则下次改动没有回归网。"
+    - "F6（低，极端前提，已知边界，本次不修）：第三轮独立复核（@fb0dd1b）在正常用法之外挖出 5 条边界，都不影响交付：(P1) 项目根里放 bind mount 指向外部目录时 realpath 看不见挂载点，仍会写进去（需要挂载权限 / unshare -r，属路径法检查的固有边界）；(P2) 项目根里放指向外部文件的硬链接时，追加会落到同一个 inode（只追加标记块、不覆盖原内容，且做链接的人本就能写两边）—— 可加 nlink>1 守卫；(P3) 悬空符号链接 + 显式 --agents-md 时是「打印已跳过、退出码 0」，与越界时退出码 1 不一致（没有写到外部），建议统一成 1；(P4) --root 传符号链接路径时会被误判成越界（不传 --root 正常），因为入口脚本按真实路径解析、--root 按字面比较；(P5) 祖先目录自己像项目根（有 .git）时仍会写进去，与本规格写明的规则一致，只是 monorepo 嵌套布局下可能高一层。"
     - "F5（低，既有问题、非本次改动）：README 第三节写「预设要排在品牌默认值后面才生效」，但独立复核的浏览器实测显示两种引入顺序下 :root[data-brand] 都生效（选择器权重 0,2,0 > 0,1,0），而 brand.presets.css 头部注释仍写「顺序要正确」。建议单独一次改动把文档与注释统一。"
   failure_handling:
     - scenario: "网络原因 clone 失败"
